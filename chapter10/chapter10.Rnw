@@ -1,0 +1,367 @@
+\begin{abstract}
+In this paper, we introduce a package for semi-supervised learning research in the R programming language called RSSL. We cover the purpose of the package, the methods it includes and comment on their use and implementation. We then show, using several code examples, how the package can be used to replicate well-known results from the semi-supervised learning literature.
+\end{abstract}
+
+<<ggplot-theme,echo=FALSE,message=FALSE,warning=FALSE>>=
+options(digits=7)
+library(ggplot2,warn.conflict=FALSE)
+
+theme_rssl <- function(base_size=12) {
+  theme_classic() +
+  theme(legend.position="none",
+    text=element_text(family="Palatino",face = "italic",colour="black"),
+    plot.title=element_text(hjust = 0.5),
+    title=element_text(family="Gill Sans",face = "plain"),
+    strip.background=element_rect(size = 0,color=NA,fill=NA),
+    axis.title.y=element_text(size=rel(1.0)),
+    axis.title.x=element_text(size=rel(1.0)),
+    axis.text=element_text(size=rel(0.8),face="plain"),
+    axis.line.x=element_line(size=0.5 ,color="black",linetype=1),
+    axis.line.y=element_line(size=0.5 ,color="black",linetype=1),
+    legend.text=element_text(size=rel(1)),
+    panel.grid.major.x=element_line(colour = "darkgrey",size = 0.2,linetype = "dashed"),
+    panel.grid.minor.x=element_blank(),
+    panel.grid.major.y=element_line(colour = "darkgrey",size = 0.2,linetype = "dashed"),
+    panel.grid.minor.y=element_blank(),
+    strip.text=element_text(size=rel(1))
+  )
+}
+@
+
+\section{Introduction}
+Semi-supervised learning is concerned with using unlabeled examples, that is, examples for which we know the values for the input features but not the corresponding outcome, to improve the performance of supervised learning methods that only use labeled examples to train a model. An important motivation for investigations into these types of algorithms is that in some applications, gathering labels is relatively expensive or time-consuming, compared to the cost of obtaining an unlabeled example. Consider, for instance, building a web-page classifier. Downloading millions of unlabeled web-pages is easy. Reading them to assign a label is time-consuming. Effectively using unlabeled examples to improve supervised classifiers can therefore greatly reduce the cost of building a decently performing prediction model, or make it feasible in cases where labeling many examples is not a viable option.
+
+While the R programming language \cite{RCoreTeam2016} offers a rich set of implementations of a plethora of supervised learning methods, brought together by machine learning packages such as \texttt{caret} and \texttt{mlr} there are fewer implementations of methods that can deal with the semi-supervised learning setting. This both impedes the spread of the use of these types of algorithms by practitioners, and makes it harder for researchers to study these approaches or compare new methods to existing ones.  The goal of the RSSL package is to make a step towards filling this hiatus, with a focus on providing methods that exemplify common behaviours of semi-supervised learning methods.
+
+Until recently, no package providing multiple semi-supervised learning methods was available in R\footnote{Recently, the \texttt{SSL} package was introduced whose implementations are mostly complementary to those offered in our package: \url{https://CRAN.R-project.org/package=SSL}}. In other languages, semi-supervised learning libraries that bring together several different methods are not available either, although there are general purpose machine learning libraries, such as scikit-learn in Python \cite{scikit-learn} that offer implementations of some semi-supervised algorithms. A broader set of implementations is available for Matlab, since the original implementations provided by the authors of many of the approaches covered by our package are provided for Matlab. The goal of our package is to bring some of these implementations together in the R environment by providing common interfaces to these methods, either implementing these methods in R, translating code to R or providing interfaces to C++ libraries.
+
+The goal of this work is to give an overview of the package and make some comments how it is implemented and how it can be used. We will then provide several examples on how the package can be used to replicate various well-known results from the semi-supervised learning literature.
+
+\section{Overview of the Package}
+
+\subsection{Classifiers}
+The package focuses on semi-supervised classification. We give an overview of the classifiers that are available in \Cref{table:classifiers}. We consider it important to compare the performance of semi-supervised learners to their supervised counterparts. We therefore include several supervised implementations and sets of semi-supervised methods corresponding to each supervised method. Most of the methods are new implementations in R based on the description of the methods in the original research papers. For others, we either provide a (close to) direct translation of the original code into R code or an R interface to the original C++ code. For the latter we make use of the Rcpp package \cite{Eddelbuettel2011}. In some cases (WellSVM and S4VM) it was necessary to also include a customized version of LIBSVM \cite{Chang2011} on which these implementations depend.
+
+A common wrapper method for semi-supervised learning, self-learning, is available for all supervised learners, since it merely requires a supervised classifier and some unlabeled objects. Other types of semi-supervised methods that are available for multiple supervised classifiers are the moment (or intrinsically) constrained methods of \citet{Loog2010,Loog2014a}, the implicitly constrained methods of \citet{Krijthe2014,Krijthe2017,Krijthe2017projection} and the Laplacian regularization of \citet{Belkin2006}.
+
+All the classifier functions require as input either matrices with feature values (one for the labeled data and one for the unlabeled data) and a \texttt{factor} object containing the labels, or a \texttt{formula} object defining the names input and target variables and a corresponding \texttt{data.frame} object containing the whole dataset. In the examples, we will mostly use the latter style, since it fits better with the use of the pipe operator that is becoming popular in R programming.
+
+Each classifier function returns an object of a specific subclass of the \texttt{Classifier} class containing the trained classifier. There are several methods that we can call on these objects. The \texttt{predict} method predicts the labels of new data. \texttt{decisionvalues} returns the value of the decision function for new objects. If available, the \texttt{loss} method returns the classifier specific loss (the surrogate loss used to train the classifier) incurred by the classifier on a set of examples. If the method assigns responsibilities --probabilities of belonging to a particular class-- to the unlabeled examples, \texttt{responsibilities} returns the responsibility values assigned to the unlabeled examples. For linear classifiers, we often provide the \texttt{line\_coefficients} method that provides the coefficients to plot a 2-dimensional decision boundary, which may be useful for plotting the classifier in simple 2D examples.
+
+\begin{table}
+\label{table:classifiers}
+\caption{Overview of classifiers available in RSSL}
+\begin{center}
+\scriptsize
+\begin{tabular}{ lcccl } 
+ \toprule
+ \textsc{Classifier} & \textsc{R} & \textsc{Interface} & \textsc{Port} & \textsc{Reference} \\ 
+ \midrule
+\textbf{(Kernel) Least Squares Classifier} & \checkmark &  &  & \cite{Hastie2009} \\
+\, Implicitly Constrained  & \checkmark & & & \cite{Krijthe2017}  \\
+\, Implicitly Constrained Projection  & \checkmark & & & \cite{Krijthe2017projection}  \\
+\, Laplacian Regularized & \checkmark & & & \cite{Belkin2006} \\
+\, Updated Second Moment & \checkmark & & & \cite{Shaffer1991}  \\
+\, Self-learning & \checkmark & & & \cite{McLachlan1975} \\
+\, Optimistic / ``Expectation Maximization'' & \checkmark & & & \cite{Krijthe2016a}  \\
+\midrule
+\textbf{Linear Discriminant Analysis} & \checkmark & & & \cite{Webb2002} \\
+\, Expectation Maximization  & \checkmark & & & \cite{Dempster1977} \\
+\, Implicitly Constrained  & \checkmark & & & \cite{Krijthe2014} \\
+\, Maximum Constrastive Pessimistic  & & & \checkmark & \cite{Loog2016} \\
+\, Moment Constrained  & \checkmark & & & \cite{Loog2014a} \\
+\, Self-learning & \checkmark & & & \cite{McLachlan1975} \\
+\midrule
+\textbf{Nearest Mean Classifier} & \checkmark & & & \cite{Webb2002} \\
+\, Expectation Maximization & \checkmark & & & \cite{Dempster1977} \\
+\, Moment Constrained & \checkmark & & & \cite{Loog2010} \\
+\, Self-learning & \checkmark & & & \cite{McLachlan1975} \\
+\midrule
+\textbf{Support Vector Machine} & \checkmark & & &  \\
+\, SVMlin & & \checkmark & & \cite{Sindhwani2006} \\
+\, WellSVM & & & \checkmark & \cite{Li2013} \\
+\, S4VM & & & \checkmark & \cite{Li2015} \\
+\, Transductive SVM (Convex Concave Procedure) & \checkmark & & & \cite{Collobert2006} \\
+\, Laplacian SVM & \checkmark & & & \cite{Belkin2006} \\
+\, Self-learning & \checkmark & & & \cite{McLachlan1975} \\
+\midrule
+\textbf{Logistic Regression} & \checkmark & & &  \\
+\, Entropy Regularized Logistic Regression & \checkmark & & & \cite{Grandvalet2005} \\
+\, Self-learning & \checkmark & & & \cite{McLachlan1975} \\
+\midrule
+Harmonic Energy Minimization & \checkmark & & & \cite{Zhu2003} \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+\subsection{Utility Functions}
+In addition to the implementations of the classifiers themselves, the package includes a number of functions that simplify setting up experiments and studying these classifiers. There are three main categories of functions: functions to generate simulated datasets, functions to evaluate classifiers and run experiments and functions for plotting trained classifiers.
+
+\subsubsection{Generated Datasets}
+A number of functions, of the form \texttt{generate*}, create datasets sampled from archetypical simulated problems. An overview of simulated datasets is given in \Cref{fig:generateddatasets}. You will notice that these datasets mostly show examples where the structure of the density of the feature values is either very informative or not informative at all for the estimation of the conditional distribution of the labels given the feature value. A major theme in semi-supervised learning research is how to leverage this connection between the distribution of the features and the conditional distribution of the labels, and what happens if this connection is non-existent. These simulated datasets offer some simple but interesting test cases for semi-supervised methods.
+<<generateddatasets, echo=FALSE, warning=FALSE, fig.cap="Simulated Datasets. Each can be generated using a function of the form \\texttt{generate*}, were \\texttt{*} should be replaced by the name of the dataset. (alt) indicates non-default parameters where used when calling the function.",fig.height=7, fig.width=7>>=
+library(RSSL)
+library(dplyr,warn.conflicts = FALSE)
+library(ggplot2)
+library(ggthemes)
+set.seed(1)
+
+dfs <- bind_rows(list("2ClassGaussian"=
+                        generate2ClassGaussian(n=400,d=2,var=0.3),
+                      "2ClassGaussian (alt)"=
+                        generate2ClassGaussian(n=400,d=2,var=0.3,expected = FALSE),
+                      "ABA"=generateABA(n=400,var=0.1),
+                      "CrescentMoon"=generateCrescentMoon(n=400,sigma=1) %>% mutate(Class=factor(Class,levels=c("+","-"),labels=c("-1","1"))),
+                      "FourClusters"=generateFourClusters(n=400),
+                      "SlicedCookie"=generateSlicedCookie(n = 400),
+                      "SlicedCookie (alt)"=generateSlicedCookie(n = 400, expected=TRUE),
+                      "TwoCircles"=generateTwoCircles(n=400, noise_var = 0.1) %>% mutate(Class=factor(Class,levels=c("1","2"),labels=c("-1","1"))),
+                      "ParallelPlanes"=generateParallelPlanes(n = 400) %>% transmute(X1=x,X2=y,Class=Class)
+                  ),
+                 .id="Dataset")
+
+dfs %>%
+  ggplot(aes(x=X1,y=X2,color=Class)) +
+  geom_point(size=0.3) +
+  facet_wrap(~Dataset, ncol=3,scales="free") +
+  coord_equal() +
+  theme_minimal(base_size = 14, base_family="Palatino") +
+  theme(legend.position="none",axis.text=element_blank(),axis.title=element_blank(),text=element_text(face="italic")) +
+  scale_color_tableau()
+@
+
+\subsubsection{Classifier Evaluation}
+To evaluate the performance of different methods, the package contains three types of functions that implement standard procedures for setting up such experiments. The first is by splitting a fully labeled dataset into a labeled set, an unlabeled set and a test set. For data in the form of a matrix, the \texttt{split\_dataset\_ssl} can be used. For data in the form of a data frame, the easiest way is to use \texttt{magrittr}'s pipe operator, splitting the data using the \texttt{split\_random} command, using \texttt{add\_missinglabels\_mar} to randomly remove labels, and \texttt{missing\_labels} or \texttt{true\_labels} to recover these labels when we want to evaluate the performance on the unlabeled objects.
+The second type of experiment is to apply cross-validation in a semi-supervised setting using \texttt{CrossValidationSSL}. Distinct from the normal cross-validation setting, the data in the training folds get randomly assigned to the labeled or unlabeled set.
+The third type of experiment enabled by the package is to generate learning curves using the \texttt{LearningCurveSSL} function. These are performance curves for increasing numbers of unlabeled examples or an increasing fraction of labeled examples. 
+For both the learning curves and cross-validation, multiple datasets can be given as input and the performance measures can be user defined, or one could use one of the supplied \texttt{measure\_*} functions. Also in both cases, the experiments can optionally be run in parallel on multiple cores to speed up computation.
+
+\subsubsection{Plotting}
+Three ways to plot classifiers in simple 2D examples are provided. The most general method relies on the ggplot2 package \cite{Wickham2009} to plot the data and is provided in the form of the \texttt{stat\_classifier} that can add  classification boundaries to \texttt{ggplot2} plots. \texttt{geom\_linearclassifier} works in a similar way, but only works for a number of linear classifiers that have an associated \texttt{line\_coefficients} method. Lastly, for these classifiers \texttt{line\_coefficients} can be used directly to get the parameters that define the linear decision boundary, for use in a custom plotting function. In the examples, we will illustrate the use of \texttt{stat\_classifier} and \texttt{geom\_linearclassifier}.
+
+\section{Installation}
+The package is available from the Comprehensive R Archive Network (CRAN). As such, the easiest way to install the package is to run the following command using a recent version of R:
+<<install, echo=TRUE,eval=FALSE, size='normalsize'>>=
+install.packages("RSSL")
+@
+\noindent The latest development version of the package can be installed using:
+<<install2, echo=TRUE,eval=FALSE, size='normalsize'>>=
+# If devtools is not installed run: install.packages("devtools")
+devtools::install_github("jkrijthe/RSSL")
+@
+
+\section{Examples}
+In this section, we will provide several examples of how the RSSL package can be used to illustrate or replicate results from the semi-supervised learning literature. Due to space constraints, we provide parts of the code for the examples in the text below. The complete code for all examples can be found in the source version of this document, which can be found on the author's website\footnote{\url{www.jessekrijthe.com}}.
+
+\subsection{A Failure of Self-Learning}
+While semi-supervised learning may seem to be obviously helpful, the fact that semi-supervised methods can actually lead to worse performance than their supervised counterparts has been both widely observed and described \cite{Cozman2003}. We will generate an example where unlabeled data is helpful (using the 2ClassGaussian problem from \Cref{fig:generateddatasets}) and one where unlabeled data actually leads to an increase in the classification error (2ClassGaussian (alt) in \Cref{fig:generateddatasets}), for the least squares classifier and self-learning as the semi-supervised learner. This can be done using the following code:
+<<selflearning, echo=TRUE, cache=TRUE,warning=FALSE, size='normalsize'>>=
+library(RSSL)
+set.seed(1)
+
+# Set the datasets and corresponding formula objects
+datasets <- list("2 Gaussian Expected"=
+                   generate2ClassGaussian(n=2000,d=2,expected=TRUE),
+                 "2 Gaussian Non-Expected"=
+                   generate2ClassGaussian(n=2000,d=2,expected=FALSE))
+formulae <- list("2 Gaussian Expected"=formula(Class~.),
+                 "2 Gaussian Non-Expected"=formula(Class~.))
+
+# Define the classifiers to be used
+classifiers <- list(
+  "Supervised" = function(X,y,X_u,y_u) { LeastSquaresClassifier(X,y)},
+  "Self-learning" = function(X,y,X_u,y_u) { 
+                SelfLearning(X,y,X_u,method = LeastSquaresClassifier)})
+
+# Define the performance measures to be used and run experiment
+measures <- list("Error" =  measure_error, "Loss" = measure_losstest)
+results_lc <- LearningCurveSSL(formulae,datasets,
+                           classifiers=classifiers,
+                           measures=measures,verbose=FALSE,
+                           repeats=100,n_l=10,sizes = 2^(1:10))
+@
+\noindent When we plot these results (using the \texttt{plot} method and optionally changing the display settings of the plot), we get the figure shown in \Cref{fig:plot-lc}. What this shows is that, clearly, semi-supervised methods can be outperformed by their supervised counterpart for some datasets, for some choice of semi-supervised learner. Given that one may have little labeled training data to accurately detect that this is happening, in some settings we may want to consider methods that inherently attempt to avoid this deterioration in performance. We will return to this in a later example.
+
+<<plot-lc, echo=FALSE, warning=FALSE, fig.cap="Example where self-learning leads to better performance as we add more unlabeled data (left) and increasingly worse performance as unlabeled data is added (right). The classifier used is the least squares classifier. The datasets are similar to the ones shown in \\Cref{fig:generateddatasets}.", fig.height=3.5, dev="cairo_pdf">>=
+library(scales)
+
+results_lc$results %>% 
+  dplyr::filter(Measure=="Error") %>% 
+  dplyr::filter(Classifier %in% c("Supervised","Self-learning")) %>%
+  mutate(Measure=NULL) %>% 
+  group_by(`Number of unlabeled objects`,Classifier, Dataset) %>% 
+  summarize(Mean=mean(value),SE=sd(value)/sqrt(n())) %>% 
+  ungroup %>% 
+  ggplot(aes(x=`Number of unlabeled objects`,y=Mean)) + 
+  scale_x_continuous(trans = log2_trans(),expand=c(0.1,0),
+                     breaks=c(2,4,8,16,32,64,128,256,512,1024)) +
+  facet_wrap(~Dataset) +
+  geom_line(aes(linetype=Classifier)) +
+  geom_pointrange(aes(ymin=Mean-1*SE,ymax=Mean+1*SE)) +
+  scale_y_continuous(limits=c(0.0,0.35),expand=c(0,0)) + 
+  theme_rssl() +
+  theme(legend.position="bottom") +
+  ylab(toupper("Error Rate")) +
+  xlab(toupper("Number of unlabeled objects")) +
+  labs(linetype="")
+@
+
+\subsection{Graph Based Semi-supervised Learning}
+Many methods in semi-supervised learning attempt to use the assumption that labels change smoothly over dense regions in the feature space. An early attempt to encode this assumption is offered by \cite{Zhu2003} who propose to minimize an energy function for the labels of the unlabeled objects that penalizes large deviations between labels assigned to objects that are close, for some measure of closeness. This so-called harmonic energy formulation can also be interpreted as a propagation of the labels from the labeled objects to the unlabeled objects, through a graph that encodes a measure of closeness. We recreate \cite{Zhu2003}'s Figure~2, which can be found in \Cref{fig:labelpropagation}. Due to space constraints, we will defer the code to the online version of this document, since it is similar to the code for the next example.
+<<labelpropagation, dev='pdf', echo=FALSE, warning=FALSE, fig.cap="Replication of Figure 2 from \\cite{Zhu2003} demonstrating harmonic energy minimization. The larger points indicate the labeled objects. The color indicates the predicted class.",fig.subcap=c('Parallel planes dataset', 'Spirals dataset'), out.width='.48\\linewidth',fig.height=6.5>>=
+library(RSSL)
+library(dplyr)
+library(ggplot2)
+plot_style <- theme_classic() # Set the style of the plot
+plot_style <- theme_rssl()
+
+# Generate datasets
+set.seed(1)
+df_unlabeled <- generateParallelPlanes(n=60,sigma = 0.12) %>% 
+  add_missinglabels_mar(Class~.,prob=1)
+df_labeled <- generateParallelPlanes(n=1)
+df <- rbind(df_labeled, df_unlabeled)
+
+# Train classifier
+result_classifier <- GRFClassifier(Class~.,df,adjacency = "heat")
+
+# Make plot
+df_unlabeled %>% 
+  mutate(prediction=predict(result_classifier)) %>% 
+  ggplot(aes(x=x,y=y,color=prediction,shape=prediction)) +
+  geom_point(size=3) +
+  geom_point(aes(color=Class,shape=Class),data=df_labeled, size=10) +
+  scale_color_manual(values=c("#D62728","black","#1F77B4")) +
+  plot_style +
+  labs(x="",y="")
+
+
+library(plot3D)
+# Generate data
+df_unlabeled <- generateSpirals(n=92) %>% 
+  add_missinglabels_mar(Class~.,prob=1)
+df_labeled <- generateSpirals(n=1)
+df <- rbind(df_labeled,df_unlabeled)
+
+# Train classifier
+result_classifier <- GRFClassifier(Class~.,df,adjacency = "heat")
+resp <- responsibilities(result_classifier)[,2]
+
+# Make plot
+scatter3D(df_unlabeled$x, df_unlabeled$y, df_unlabeled$z,
+          colvar=resp,pch=as.numeric(true_labels(df_unlabeled)),
+          phi = 20,colkey=FALSE,col=ramp.col(c("#1F77B4","#D62728")))
+scatter3D(df_labeled$x,df_labeled$y,df_labeled$z, 
+          colvar=as.numeric(df_labeled$Class),
+          pch=as.numeric(df_labeled$Class),
+          colkey=FALSE, cex=3, add=TRUE,col=ramp.col(c("#1F77B4","#D62728")))
+@
+
+\subsection{Manifold Regularization}
+Belkin et al. \cite{Belkin2006} build on the ideas of \cite{Zhu2003} by formulating the smoothness of the labeling function over the data manifold as a regularization term. In RSSL this Laplacian regularization term is included in both an SVM formulation and a regularized least squares formulation. For the Laplacian SVM formulation, Figure~2 from \cite{Belkin2006} provides an example of its performance on a simulated dataset. We can replicate this result using the following code. The results are shown in \Cref{fig:manifoldregularization}.
+<<manifoldregularization,dev="cairo_pdf", echo=c(1:4,7:21), fig.cap="Replication of Figure~2 from \\cite{Belkin2006}. Laplacian SVM for various values of the influence of the unlabeled data.", fig.subcap=c("$\\lambda=0.0001$, $\\gamma=0$","$\\lambda=0.0001$, $\\gamma=10$","$\\lambda=0.0001$, $\\gamma=10000$"), out.width='0.32\\linewidth', fig.width=2.5,fig.height=2.5,size='normalsize' >>=
+library(RSSL)
+library(dplyr)
+library(ggplot2)
+plot_style <- theme_classic() # Set the style of the plot
+plot_style <- theme_rssl() + theme(axis.title.x=element_blank(),axis.title.y=element_blank())
+scale_colour_discrete <- scale_color_tableau
+
+set.seed(2)
+df_unlabeled <- generateCrescentMoon(n=100,sigma = 0.3) %>% 
+  add_missinglabels_mar(Class~.,prob=1)
+df_labeled <- generateCrescentMoon(n=1,sigma = 0.3)
+df <- rbind(df_unlabeled,df_labeled)
+
+c_svm <- SVM(Class~.,df_labeled,scale=FALSE, 
+             kernel = kernlab::rbfdot(0.05),
+             C=2500)
+
+c_lapsvm1 <- LaplacianSVM(Class~.,df,scale=FALSE,
+                         kernel=kernlab::rbfdot(0.05),
+                         lambda = 0.0001,gamma=10)
+
+c_lapsvm2 <- LaplacianSVM(Class~.,df,scale=FALSE,
+                         kernel=kernlab::rbfdot(0.05),
+                         lambda = 0.0001,gamma=10000)
+
+# Plot the results 
+# Change the arguments of stat_classifier to plot the Laplacian SVM
+ggplot(df_unlabeled, aes(x=X1,y=X2)) +
+  geom_point() +
+  geom_point(aes(color=Class,shape=Class),data=df_labeled,size=5) +
+  stat_classifier(classifiers=list("SVM"=c_svm),color="black") +
+  ggtitle("SVM")+
+  plot_style
+
+ggplot(df_unlabeled, aes(x=X1,y=X2)) +
+  geom_point() +
+  geom_point(aes(color=Class,shape=Class),data=df_labeled,size=5) +
+  stat_classifier(classifiers=list("LapSVM"=c_lapsvm1),color="black") +
+  ggtitle(toupper("Laplacian SVM")) +
+  plot_style
+
+ggplot(df_unlabeled, aes(x=X1,y=X2)) +
+  geom_point() +
+  geom_point(aes(color=Class,shape=Class),data=df_labeled,size=5) +
+  stat_classifier(classifiers=list("LapSVM"=c_lapsvm2),color="black") +
+  ggtitle(toupper("Laplacian SVM")) +
+  plot_style
+@
+
+\subsection{Low Density Separation}
+A number of semi-supervised approaches attempt to leverage the assumption that the classification boundary may reside in a region of low-density. The Semi-supervised SVM or Transductive SVM \cite{Joachims1999} is one such approach. In \cite[Chapter 6]{Zhu2009}, an example is given for the potential problems this low-density assumption may cause when it is not valid by considering two artificial datasets. Here we replicate these results for a different classifier that makes use of the low-density assumption: entropy regularized logistic regression \cite{Grandvalet2005}. The results are shown in \Cref{fig:lowdensityproblem}. The code to generate these results can be found in the source version of this document.
+<<lowdensityproblem, echo=FALSE, fig.cap="Demonstration of potential problems when the low density assumption does not hold, similar to Figure 6.5 in \\cite{Zhu2009}", fig.subcap=c("Low-density assumption","Non low-density assumption"), out.width='.49\\linewidth', fig.width=5, fig.height=5,size='normalsize'>>=
+library(RSSL)
+library(ggplot2)
+
+for (alt in c(TRUE,FALSE)) {
+  set.seed(1)
+  df <- generateSlicedCookie(n = 1000, expected = alt, gap = 1) 
+  df_semi <- add_missinglabels_mar(df, Class~., prob = 0.995) 
+  
+  g_lr <- LogisticRegression(Class~., df_semi,lambda = 0.01)
+  g_erlr <- EntropyRegularizedLogisticRegression(
+                Class~., df_semi, lambda = 0.01, lambda_entropy = 1000)
+  
+
+  print(
+    ggplot(df, aes(x=X1, y=X2, col=Class, shape=Class)) +
+      geom_point(alpha = 0.3) +
+      geom_point(size = 5,data = na.omit(df_semi)) +
+      geom_linearclassifier("Logistic Regression"=g_lr,
+                            "Entropy Regularization"=g_erlr) +
+      scale_color_tableau(guide = "none") +
+      coord_equal() +
+      theme_rssl() +
+      theme(legend.position = "bottom") +
+      scale_shape(guide = "none") +
+      labs(x = "",y = "", linetype = "", shape = "", color = "")
+  )
+}
+@
+
+
+\subsection{Improvement Guarantees}
+We now return to the example of deterioration in performance from \Cref{fig:plot-lc}. The goal of our work in \cite{Loog2016,Krijthe2016a,Krijthe2017} is to construct methods that are guaranteed to outperform the supervised alternative. The guarantee that is given in these works is that the semi-supervised learner outperforms the supervised learner on the full, labeled and unlabeled, training set in terms of the surrogate loss (cf. \cite{Loog2014b}). The following code trains semi-supervised classifiers in these cases and returns the mean loss on the whole training set, the output is shown below the code example. It shows that indeed, these methods do not deteriorate performance in terms of the surrogate loss, while the self-learning method does show this deterioration in performance.
+<<improvementguarantees, echo=TRUE,results='hold',size='normalsize',tidy=FALSE>>=
+library(RSSL)
+set.seed(1)
+
+# Generate Example
+df <- generate2ClassGaussian(n=1000, d=2, expected=FALSE)
+df_semi <- add_missinglabels_mar(df, Class~., prob=0.995)
+
+# Train and evaluate classifiers
+mean(loss(LeastSquaresClassifier(Class~.,df_semi),df))
+mean(loss(SelfLearning(Class~.,df_semi,
+                        method=LeastSquaresClassifier),df))
+mean(loss(ICLeastSquaresClassifier(Class~.,df_semi),df))
+mean(loss(ICLeastSquaresClassifier(Class~.,df_semi,
+                          projection="semisupervised"),df))
+@
+
+
+\section{Conclusion}
+We presented RSSL, a package containing implementations and interfaces to implementations of semi-supervised classifiers, and utility methods to carry out experiments using these methods. We demonstrated how the package can be used to replicate several results from the semi-supervised learning literature. More usage examples can be found in the package documentation. We hope the package inspires practitioners to consider semi-supervised learning in their work and we invite others to contribute to and use the package for research. Moreover, we hope the package contributes towards making semi-supervised learning research, and the research of those who use these methods in an applied setting, fully reproducible.

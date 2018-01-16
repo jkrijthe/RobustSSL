@@ -1,0 +1,349 @@
+<<set-parent-intro, echo=FALSE, cache=FALSE>>=
+set_parent('../thesis.Rnw')
+@
+
+\chapter[Introduction]{Introduction}
+At its most basic level, this thesis is concerned with statistical learning from data. Specifically, how do we effectively learn a relationship between a set of input variables and some outcome variable based on previous examples that exhibit this relationship? Consider, for instance, the relationship between political polls and the outcome of an election, the relationship between the pixels in an image to a variable describing the contents of the image or the relationship between physiological measurements and diagnostic tests and a variable describing the disease status of a patient.
+
+These relationships are usually learned using examples for which we know both the input and the outcome, so-called labeled data, by what is known as supervised learning methods. The main goal of this work is to elucidate the role that unlabeled data -- data for which we know the input variables but not the outcome -- can play in learning this relationship. Using these unlabeled examples in conjunction with labeled examples to learn the input-outcome relationship is what is referred to as semi-supervised learning. In some applications, unlabeled data are plentiful, while labeling examples is relatively expensive in terms of time or money. In these cases, can we expect unlabeled data to improve our estimate of the relationship between input and outcome? And is it possible to guarantee this estimate is better than the supervised estimate we get if we do not consider the unlabeled examples?
+
+\section{The Problem of Statistical Learning}
+\markright{The problem of statistical learning}
+Before we consider the role of unlabeled data, we will briefly discuss statistical learning in general.
+
+At an abstract level, the question of learning forms the bedrock on which the sciences are built: to be able to build up knowledge from current observations we need to be sure they tell us something about relationships we will observe in future measurements. It is no surprise then, that the question of induction --  what relationship past observations have to future observations -- has been addressed in philosophy throughout the ages. Most famous, in this context, is perhaps the argument of Hume that one can not justify the principle of induction without running into circular reasoning \cite{Vickers2016}. The assumption of uniformity of nature, that the future will turn out to be similar to past observations, remains, in effect a useful heuristic, the validity of which can not be proven in general. One solution to the problem of induction is offered by Popper who argues it has no place in science, and all we can do is falsify possible theories.
+
+Extending the problem of induction, by putting forth the thesis that the failure of induction underpins most, highly impactful, real-world events leads \citet{Taleb2007} to call cases where assumptions of uniformity fail \emph{black swan} events. The name black swan is a reference to the surprise European travelers must have experienced after observing a black swan when travelling to Australia, after observing only white ones before then.
+
+So how are we to ever make any claims about how to learn from past observations and how do we guarantee the effectiveness of such a method in the light of the problem of induction? In statistical learning these problems are sidestepped in most mathematical analyses by assuming examples we observed in the past and in the future come from the same underlying process or probability distribution and this distribution is relatively well behaved, that is, the chances of extreme outliers are relatively small. `Well-behaved', of course, is then defined with respect to some assumptions, which I hope to have been able to make abundantly clear when they come up so as to be able to be opposed by the astute reader.
+
+\section{Machines \& Learning}
+\markright{Machines \& Learning}
+This thesis presents results that are most closely related to other results in the fields of pattern recognition and machine learning. Especially the latter term seems to suggest the importance of some automated `machine' being able to learn. The perspective taken in this thesis, however, is that the conceptual questions if, why and how (semi-supervised) learning is possible deserve as much attention as the particular artifact (man or machine) on which the learning is implemented. Better understanding of learning will (hopefully) help  to construct these artifacts as well. While the reverse may also be true -- better understanding through the constructions of these artifacts -- we hope our exposition offers a new perspective on the (im)possibilities of semi-supervised learning.
+
+To those unfamiliar with statistical learning or prediction, it may seem like intellectual hubris to claim to be able to predict future events. Caveats -- such as black swans -- aside, it may help to think of prediction not as gaining knowledge about the future. Rather, it is about quantifying the present knowledge we have about future events. For instance, predicting the outcome of an election based on political polling data does not magically give us knowledge about the future. At its best it aggregates information in the present about current polls and the relationship between polls and outcomes to quantify our present knowledge about the future event.
+
+%In this way, statistical models serve a similar role to markets in economics, cf. \cite{Rothschild2009}. Under the efficient market hypothesis, a market is expected to reveal all available information through prices. Similarly, the ideal of a statistical model is to aggregate all information that is currently available to make a current prediction about a future event.
+
+\section{Learning from Labeled Data}
+To learn the relationship between some set of input variables $X$ and an outcome $Y$, a useful first step is to gather examples that exhibit this relationship and, through a statistical model, quantify what we learned from these examples. For now, assume that the data we gather are sampled independently from a probability distribution $p_{X,Y}$. Suppose we know $p_{X,Y}$ exactly. Then the quantity one would like to minimize is:
+\begin{equation} 
+R(f) = \int L(f(\mathbf{x}),y) p_{X,Y}(\mathbf{x},y) d \mathbf{x} d y \,, \label{introductionrisk}
+\end{equation}
+where $f$ is a function that predicts the value $y$ given a given specific value of the input variables $\mathbf{x}$. The loss function $L$ measures the quality of this prediction. The quantity in \Cref{introductionrisk} is the expected loss which is also referred to as the risk. Finding an $f$ that minimizes this quantity would give us an optimal estimate of the relationship between $X$ and $Y$, relative to the chosen loss function $L$ and function class of $f$. Unfortunately, we do not know the exact distribution $p_{X,Y}$, rather we have a sample from this distribution: a finite number of examples $(\mathbf{x}_i,y_i)$. A common framework used in machine learning to go about finding an estimate of $f$ is to simply use this sample directly instead of the true distribution to approximate the risk:
+\begin{equation}
+\hat{R}(f) = \sum_i^N L(f(\mathbf{x}_i),y_i)
+\,.
+\end{equation}
+This is known as the empirical risk and finding the quantity that minimizes this risk is known as empirical risk minimization. If the number of examples grows to infinity, under some mild conditions, the empirical risk will converge to the true risk. For small sample sizes, however, the empirical risk can be a very variable estimator for the risk: gathering a new set of objects of the same size would give a very different estimate of the risk. This is especially problematic if we start minimizing a function based on this estimate as this will lead to an overoptimistic estimate of performance, which will not generalize to the true distribution. A common way to deal with this problem is to add a so-called regularization term to the empirical risk which will bias the risk and the subsequent function estimator, but in general will reduce the variance to lead to a much improved estimator in many cases. This idea can be motivated from many different viewpoints, for instance, from a Bayesian perspective \citep{BDA2013} to generalization bounds \citep{Mohri2012} or tolerance to noise \citep{Bishop1995}.
+
+\section{Enter Unlabeled Data}
+Consider the following scenarios in which we want to learn:
+\begin{itemize}
+\item Predicting the contents of an image uploaded to a social networking site
+\item Classifying the topics of documents in a newspaper archive
+\item Detecting tumors in CT-scans
+\end{itemize}
+What these learning scenarios have in common is that it is relatively expensive to gather outcome labels, while gathering inputs is relatively inexpensive. For some of these problems, we could simply turn to the web and download millions of unlabeled images or documents, while labeling each item would require at least one person to attach the correct label to it. These are just a few examples from a world where sensors are becoming increasingly cheap, leading to a deluge in unlabeled objects, while the cost of labeling data is not necessarily dropping at a proportional rate.
+
+What the empirical risk formulation outlined above assumes is that the training examples have inputs and outcomes. What if we also have a set of unlabeled data, for which we know the inputs $\mathbf{x}$ but for which the outcomes $y$ are missing? Can these be used to improve the estimator we get using empirical risk minimization?
+
+The main question tackled in this thesis is whether this type of data is valuable in learning the relationship from $X$ to $Y$. We specifically consider this in a \emph{robust} way: is it possible to come up with a way to use these data that guarantees that we get a better solution than when these data is not used?
+
+An important, yet often overlooked \citep{Lafferty2007}, consideration
+is why the labels are missing. It is often implicitly assumed that the labels are \emph{missing at random} \citep{Little2002}, meaning that the missingness is independent of the true label given the value of the input features. This is not the case if, for instance, labels are missing because it is harder to observe them for some of the classes than for others. Furthermore, it is often assumed labels are \emph{missing completely at random}, that is, the missingness also does not depend on the values for the input features.
+
+\section{Why would unlabeled data be valuable at all?}
+One might wonder how unlabeled data can help at all: at first sight it may be hopeless to learn about an input-outcome relationship if we do not know the outcome.
+We offer three arguments that suggest unlabeled examples could have some value in identifying the relationship between $X$ and $Y$: two suggestive examples, an allusion to human learning and an empirical consideration.
+
+First, consider the stylized example in \Cref{fig:stylizedexample1}. There one could imagine the decision boundary that separates the two different types of objects could be improved by taking into account the unlabeled objects. It seems to make sense that the boundary will more likely go through the region where no objects reside. In other words, as \citet{Belkin2006} note, while the linear decision boundary may seem to be the simplest decision boundary that separates the two labeled objects at first, the unlabeled data may make us re-evaluate what the concept of a simple decision boundary means.
+
+<<stylizedexample1,echo=FALSE, fig.cap="Classification example with one training object for each class and a larger number of unlabeled objects. The solid line corresponds to a supervised logistic regression classifier. The configuration of the unlabeled data could suggest the decision boundary should be updated.",fig.height=4.5,warning=FALSE>>=
+library(ggplot2,warn.conflict=FALSE)
+library(RSSL)
+library(dplyr,warn.conflict=FALSE)
+set.seed(1)
+
+df_lab <- generateCrescentMoon(1,d=2,sigma = 0.2)
+df_unlab <- generateCrescentMoon(99,d=2,sigma=0.2) %>% 
+  add_missinglabels_mar(prob=1)
+df <- bind_rows(df_lab,df_unlab)
+
+
+ggplot(df_unlab,aes(x=X1,y=X2,color=Class)) + 
+  geom_point(size=2) +
+  scale_color_thesis(na.value="grey50") +
+  geom_point(data=df_lab,size=6) +
+  geom_linearclassifier("LR"=LogisticRegression(Class~.,df_lab,lambda=100,scale=FALSE)) +
+  coord_equal() +
+  theme_thesis() +
+  theme(legend.position = "none") +
+  labs(x="",y="")
+@
+
+The example in \Cref{fig:stylizedexample2} is similar but deals with a regression problem: the output is a continuous value instead a discrete class. Again, the structure of the unlabeled data may suggest (to some) that the prediction function should be updated to take into account that the predictions change smoothly over the area where many unlabeled objects reside, but changes more rapidly where few unlabeled objects have been observed. In this case, it could mean we want to update the predictions in the `tails' to values more closely aligned with the labeled example that is closest when measured when only considering paths through high density areas.
+
+Note that in both cases the labeled data do not tell us whether these assumptions that lead to changes to the decision boundary are true. We intuit them on top of the labeled information that is already there.
+
+<<stylizedexample2,echo=FALSE, fig.cap="Regression example where the unlabeled data could convince one to update the estimated function by assuming the two ends of arcs are more likely to have a value similar to objects that are close in the intrinsic geometry indicated by the unlabeled data.", fig.subcap=c("Observed data","Predictions"), out.width='0.49\\linewidth',warning=FALSE>>=
+library(viridis,quietly=TRUE)
+set.seed(3)
+x <- (runif(1000) *1.8*pi)+pi*1.1
+df_unlab <- data.frame(x=sin(x)+rnorm(1000)*0.05, y=cos(x)+rnorm(1000)*0.05,Class=as.numeric(NA)) 
+
+x <- (runif(1) *0.9*pi)+pi*1.1
+df_lab <- data.frame(x=sin(x)+rnorm(1)*0.05, 
+                     y=cos(x)+rnorm(1)*0.05,
+                     Class=(x-pi*1.1)*3)
+x <- (runif(1) *0.9*pi)+pi*2
+df_lab <- rbind(df_lab,
+                data.frame(x=sin(x)+rnorm(1)*0.05, 
+                          y=cos(x)+rnorm(1)*0.05,
+                            Class=(x-pi*1.1)*3))
+
+df_unlab %>% 
+  ggplot(aes(x=x,y=y,color=Class)) +
+  geom_point() +
+  scale_color_viridis(option="B",na.value = "grey50") +
+  coord_equal() +
+  geom_point(data=df_lab,aes(color=Class),size=5) +
+  theme_thesis() +
+  labs(x="",y="",color="")
+
+df_unlab %>% 
+  mutate(Prediction = predict(lm(Class~.,df_lab),df_unlab)) %>% 
+  ggplot(aes(x=x,y=y,color=Prediction)) +
+  geom_point() +
+  coord_equal() +
+  scale_color_viridis(option="B",na.value = "grey50") +
+  theme_thesis() +
+  labs(x="",y="",color="")
+@
+
+A second argument for the merit of unlabeled data is that humans also do not seem to learn in a strictly supervised way. Both children and adults do not require constant feedback when learning to recognize objects or improve their judgement. \citet[Ch.7]{Zhu2009} offer an overview and discussion of some of the research in cognitive science that studies the question whether humans actually use unlabeled data to adapt their judgement. Results are mixed, but suggest that in simple experimental settings humans use semi-supervised learning to solve tasks. 
+
+However, even if semi-supervised learning is used by humans as a heuristic in many of the practical problems nature throws at us, this does not necessarily mean that it is possible in general, nor does it clearly demarcate when semi-supervised learning has merit.
+
+Lastly, a very practical argument for the use of unlabeled data is that in some applications, semi-supervised methods have shown to be able to improve over supervised solutions. A well-known example is \cite{Nigam2000} who showed this early on in a text classification example. It has also led to improved performance of estimators in bioinformatics \citep{Weston2005,Kall2007,Kasabov2003,Patel2015a}, nuclear power plant monitoring \citep{Ma2015,Moshkbar-bakhshayesh2016}, food quality \citep{Dean2006} and remote sensing \citep{Gomez-Chova2008}, among other applications. For instance, promising results in computer vision are shifting interest to leveraging abundant unlabeled data \cite{Rasmus2015}. 
+
+\section{The Need for Safe Semi-supervised Learning}
+Unfortunately, using unlabeled data is not necessarily harmless. Consider \Cref{fig:plotfail}. It shows learning curves for two datasets, one for which adding unlabeled data to the training process improves classification performance for a specific classifier, yet, on the other dataset, performance only gets worse as we add more unlabeled data.
+
+<<plotfail,echo=FALSE,fig.width=7, fig.height=4, fig.cap="Example where semi-supervised learning improves performance (left) and reduces performance (right) as compared to the supervised alternative.",warning=FALSE>>=
+load("R/plotfail.RData")
+library(RSSL)
+library(dplyr,warn.conflicts = FALSE)
+library(ggplot2)
+library(ggthemes)
+library(magrittr)
+library(knitr)
+library(scales,quietly=TRUE,warn.conflicts = FALSE)
+library(extrafont,quietly = TRUE)
+# datasets_plot <- datasets 
+# datasets_plot[[1]] <- datasets[[1]] %>% mutate(Dataset=names(datasets)[[1]])
+# datasets_plot[[2]] <- datasets[[2]] %>% mutate(Dataset=names(datasets)[[2]])
+# bind_rows(datasets_plot) %>% 
+#   ggplot(aes(x=X1,y=X2,color=Class)) +
+#   geom_point(alpha=0.6) +
+#   facet_wrap(~Dataset) +
+#   theme_classy(8) +
+#   coord_equal() +
+#   scale_color_manual(values=c("orange","purple"))
+
+res_lc$results %>% 
+  dplyr::filter(Measure=="Error") %>% 
+  dplyr::filter(Classifier %in% c("Supervised","Self-learning")) %>%
+  mutate(Measure=NULL) %>% 
+  group_by(`Number of unlabeled objects`,Classifier, Dataset) %>% 
+  summarize(Mean=mean(value),SE=sd(value)/sqrt(n())) %>% 
+  ungroup %>% 
+  ggplot(aes(x=`Number of unlabeled objects`,y=Mean)) + 
+  scale_x_continuous(trans = log2_trans(),expand=c(0.1,0),breaks=c(2,4,8,16,32,64,128,256,512,1024)) +
+  facet_wrap(~Dataset) +
+  geom_line(aes(linetype=Classifier)) +
+  geom_pointrange(aes(ymin=Mean-1*SE,ymax=Mean+1*SE)) +
+  scale_y_continuous(limits=c(0.0,0.35),expand=c(0,0)) +
+  theme_thesis() +
+  ylab(toupper("Error")) +
+  xlab(toupper("Number of unlabeled objects")) +
+  labs(linetype="")
+@
+
+This behaviour has been observed empirically on numerous occasions, see, for instance, \citep{Elworthy1994} or the references in \citep{Cozman2002}. One could wonder whether these degradations in performance are caused by numerical problems in computing the semi-supervised classifiers or whether this is a more fundamental aspect of semi-supervised learning. \citet{Cozman2003} study this by constructing problems for which generative models, when misspecified, increase the classification error as unlabeled data are added to the training sample, regardless of numerical issues. Note that this is unlike the behaviour we observe in supervised classifiers, where we generally find that adding labeled data increases classification performance, regardless of misspecification. For some exceptions to this general behaviour, see, for instance \cite{Loog2012}.
+
+\section{Arguments for the Limitations of SSL}
+Given these negative results, one could argue that it is a priori unlikely that examples of the input alone will tell us anything at all about the outcome given the input. How, for instance, does knowing a certain percentage of web pages have the word `model' in it tell us anything about the probability that a page is about `fashion' or `statistics' given that it contains the word `model'?
+
+\citet{Seeger2001} argues that for discriminative models where we directly model $p_{Y|X}$ (which he calls the diagnostic paradigm), semi-supervised learning is impossible unless one can make useful assumptions about the relationship between the parameters governing the distribution that generates the input vales $X$ and the distribution that generates the labels $Y$ given some $X=\mathbf{x}$. His argument can be illustrated by the graphical model in \Cref{fig:graphicalmodel}(a). The parameters $\theta_X$, corresponding to the data generating distribution of $X$, and $\theta_{Y|X}$, corresponding to the data generating distribution of $Y$ given $X$, are a priori independent. Because of the way the likelihood factorizes, unlabeled data play no role in updating beliefs about $\theta_{Y|X}$ and additionally, learning something about $\theta_X$ should not influence our estimate of $\theta_{Y|X}$. Compare this to the generative model in \Cref{fig:graphicalmodel}(b), where $\theta_X$ and $\theta_{Y|X}$ are dependent if we observe $X$.
+
+\citet{Hansen2009} makes a related argument by constructing the optimal Bayesian predictor for the squared loss, given that we know the prior that nature uses over parameters to generate datasets. He finds that in general this optimal predictor is given by the following solution:
+\begin{equation}
+\int \int y p(y|x,\theta) d y \frac{p(x,D_l,D_u|\theta) p(\theta)}{\int p(x,D_l,D_u|\theta') p(\theta') d\theta'} d \theta \,, \nonumber
+\end{equation}
+where $D_l$ is the labeled data set and $D_u$ is the unlabeled dataset and $p(\theta)$ is the true prior on the parameters that is used by nature to generate datasets. Now suppose we split the parameter vector $\theta$ into three sets, one belonging to the conditional distribution $p_{Y|X}$, one belonging to $p_{X}$ and one that is shared between these two. When this shared set is empty, the optimal solution becomes:
+\begin{equation}
+\int \int y p(y|x,\theta) d y \frac{p(D_l|\theta) p(\theta)}{\int p(D_l|\theta') p(\theta') d\theta'} d \theta \,. \nonumber
+\end{equation}
+In this case, the solution is the regular Bayesian solution based on the labeled data and the unlabeled data play no role. Only if the two distributions essentially share parameters will unlabeled data play a role in the solution.
+
+If these models correspond exactly to the data generating process, then these arguments hold. Yet these arguments do not tell us anything about the model itself: what are the possibilities of these models if, for instance, the dependence relationships between the variables are different from what the model assumes? \citet{Scholkopf2012} consider this situation more explicitly, by also assuming causal semantics for the models using structural causal models to describe them. They show that indeed, in the model described in \Cref{fig:graphicalmodel}(a), semi-supervised learning can not outperform supervised learning. The main concept in their analysis is that of the causal direction of prediction. If $X$ is the input, $Y$ the output we are interested in predicting and \Cref{fig:graphicalmodel}(a) is a representation of the causal structure of the problem, then we are predicting in the causal direction and semi-supervised learning is impossible, due to so-called \emph{independence of mechanism}. This is assuming there are no other confounding variables. On the other hand, if the true causal model is represented by \Cref{fig:graphicalmodel}(b), we are in the anti-causal prediction scenario and information about $p_X$ is informative about the $p_{Y|X}$.
+
+Summarizing, these arguments depend on the assumption that the models correspond to the true data generating process but tell us little about the possibilities of unlabeled data for a method for which this correspondence is not correct. In practice, however, we often deal with, non-Bayesian, potentially misspecified models and finite amounts of data. Even if unlabeled data are not informative for the true model, this does not guarantee it might not be useful to improve estimates for models used or for finite amounts of data: they may, for instance, suggest what part of the feature space is best served by more accurate predictions from a model with limited complexity.
+
+For example, \citet{Sokolovska2008} show that for logistic regression with discrete input features, if the model is misspecified, information about $p_X$ is informative and leads to an estimator with lower asymptotic variance than the supervised estimator. All in all, model misspecification and finite sample sizes seem to play an under appreciated role in these graphical model analyses of the semi-supervised problem.
+
+\begin{figure}
+\centering
+\subbottom[Diagnostic Model]{
+\begin{tikzpicture}[scale=0.5]
+\tikzstyle{main}=[circle, minimum size = 16mm, thick, draw =black!80, node distance = 16mm]
+\tikzstyle{connect}=[-latex, thick]
+\tikzstyle{box}=[rectangle, draw=black!100]
+  \node[main, fill = white!100] (xnode)  {$X$};
+  \node[main] (ynode) [right=of xnode] {$Y$};
+  \node[main] (thetax) [above=of xnode] {$\theta_X$};
+  \node[main] (thetayx) [above=of ynode] {$\theta_{Y|X}$};
+  \path (xnode) edge [connect] (ynode)
+        (thetax) edge [connect] (xnode)
+        (thetayx) edge [connect] (ynode);
+\end{tikzpicture}
+}%
+\quad\quad\quad
+\subbottom[Generative Model]{
+\begin{tikzpicture}[scale=0.8]
+\tikzstyle{main}=[circle, minimum size = 16mm, thick, draw =black!80, node distance = 16mm]
+\tikzstyle{connect}=[-latex, thick]
+\tikzstyle{box}=[rectangle, draw=black!100]
+  \node[main, fill = white!100] (xnode)  {$X$};
+  \node[main] (ynode) [right=of xnode] {$Y$};
+  \node[main] (thetax) [above=of xnode] {$\theta_{X|Y}$};
+  \node[main] (thetayx) [above=of ynode] {$\theta_{Y}$};
+  \path (ynode) edge [connect] (xnode)
+        (thetax) edge [connect] (xnode)
+        (thetayx) edge [connect] (ynode);
+\end{tikzpicture}
+}
+\caption{Graphical model representations of two modelling paradigms. When assuming causal semantics and Y as being the outcome of interest,  (a) is an example of prediction in the causal direction, while (b) is prediction in the anti-causal direction.}
+\label{fig:graphicalmodel}
+\end{figure}
+
+\citet{Ben-David2008} take a learning theory approach to identify the usefulness of unlabeled data in the ``no prior knowledge'' setting, meaning the setting where we do not make assumptions about the link between $p_{Y|X}$ and $p_{X}$. They show that for some simple concept classes over the real line, algorithms that use unlabeled data can not give sample size guarantees that are more than a constant factor better than supervised algorithms. Sample size guarantees are guarantees that the algorithm will make an error of at most $\epsilon$ with probability $\delta$ for a given sample size. They conjecture that this finding holds more generally for other semi-supervised scenarios as well, but it remains an open question. They also suggest that the problem with the prior knowledge assumed for many semi-supervised approaches is that it is untestable and give examples when these assumptions can lead to deteriorated performance compared to supervised empirical risk minimization.
+
+The general consensus from these analyses is that unlabeled data will not lead to improved performance unless there is a link between $p_X$ and $p_{Y|X}$. Most of these analyses, however, depend on the assumption that the model is correctly specified or depend on asymptotic arguments. In practice, our model will not perfectly fit the data and we have a limited number of observations. Moreover, even though some results suggest that semi-supervised learning without assumptions is only possible when the model is misspecified, this is exactly the situation where semi-supervised learning might fail. Can we instead consider whether semi-supervised learning is possible based on the properties of the method, rather than the data generating process and can we guarantee that improvement happens in a safe way in a setting where we have limited data?
+
+\section{Assumptions We Might Need}
+While the research covered so far does still not fully characterize the possibilities of semi-supervised learning in the general case, many authors suggest that assumptions are needed that link knowledge about $p_X$ to knowledge about $p_{Y|X}$. Let us quickly cover the assumptions that dominate semi-supervised learning research: identifiable mixture distributions, the manifold assumption, the clustering assumption and the low-density assumption and consider what we might learn when we make such assumptions.
+
+A classic analysis by \citet{Castelli1995} shows that if we assume identifiable mixture models where each component of the mixture belongs to one class, and  we have an infinite amount of unlabeled samples, a single labeled sample gives a classification risk of $2R^*(1-R^*)$, with $R^*$ being the minimum attainable classification error. Adding more labeled examples allows convergence to this Bayes error with rate: 
+$$
+R(N_l,N_u=\infty) - R^* = \exp(-l K + o(l)) \,,
+$$
+with $K$ being a measure of similarity between the class conditional distributions. The idea behind this analysis is that the unlabeled data will identify the different decision regions, while the labeled data only have to be used to identity which decision region belongs to which class.
+
+This may suggest labeled data are exponentially more valuable than unlabeled data, but note the exponential value comes after we used the infinite amount of unlabeled data. \citet{Castelli1996} extend this analysis to the finite sample case, for a simpler situation where we either know the class conditional distribution for each class and only need to estimate the class prior or we know the class conditionals but not the assignment of class conditionals to classes. In the former case, the value of examples in reducing the risk is proportional to the Fisher information of the labeled and unlabeled data, where the value of the labeled data are strictly larger than the unlabeled data. In the second scenario, a difference in the value of both types of information can also be shown to hold, although in this case, no learning is possible without labeled examples.
+
+An important aspect highlighted in these analyses is that the role the unlabeled data play is in reducing the number of possible decision functions, between which we can then efficiently find the correct one with limited labeled data. This idea is used in many of the following analyses as well.
+
+\citet{Lafferty2007} consider the utility of the assumption of smoothness, where one assumes a regression function is smooth in regions where $p_X(\mathbf{x})$ is high. They find that the manifold assumption (see below) alone is sufficient, but that a class of algorithms that attempts to use the manifold and smoothness assumptions together do not offer better convergence rates in terms of the squared error than supervised procedures. They do construct, however, new approaches that use either of these assumptions individually that do have improved convergence rates by using the unlabeled data.
+
+\citet{Niyogi2013} consider the assumptions that the labeling function varies smoothly over the intrinsic manifold of the data. He shows that for a particular class of problems, exemplified by different embeddings of circles in Euclidean space, knowledge of the manifold allows one to learn the correct function efficiently, meaning the approximation error converges to zero at a fast rate. At the same time, for this class of problems, there is no supervised algorithm for which convergence can be guaranteed for all distributions in the class. The intuition behind why knowledge of the manifold will help identify the correct conditional distribution is that it reduces the space of potential solutions, after which regular convergence results guarantee fast convergence.
+
+Similarly, \citet{Singh2008} apply minimax lower bounding techniques to a version of the cluster assumption, where outcomes or conditional distributions are assumed to be smooth within a cluster, or decision set. They show that if these decision sets can be found using the unlabeled data and if a supervised learner with knowledge of these sets outperforms one without this knowledge, gathering unlabeled samples at a fast enough rate guarantees improved performance. Using a specific regression scenario, they show how the merit of unlabeled examples depends strongly on the margin between the decision sets and the amount of unlabeled data.
+
+Based on the potential of semi-supervised methods to decrease performance compared to supervised procedures, \citet{Li2015} construct a safe version of the semi-supervised support vector machine by employing a low-density separation assumption. The assumption is that the true decision boundary is situated in regions of low-density in the feature space. The idea behind this approach is to generate a set of low-density separators and pick one conservatively. If indeed this set contains the true solution, they are able to show procedure will improve in terms of performance compared to the supervised procedure.
+
+In summary, given that we can make assumptions that link $p_X$ and $p_{Y|X}$, it is possible to prove unlabeled data have some value. But as \citet{Ben-David2008} and others have pointed out, checking these assumptions is often difficult or impossible. If we can not be sure these assumptions are true and the unlabeled data may lead to a procedure with reduced performance, perhaps we should avoid them completely. The view taken in this thesis is then to forego these assumptions, and find out whether semi-supervised learning is still possible for this case and what performance guarantees this allows us to derive.
+
+In this way, the work presented is inspired by, and builds on, earlier work in \citet{Loog2010,Loog2014b,Loog2014a}, who attempt to work out the intrinsic constraints posed by some supervised models without introducing constraints. These constraints then also have to hold for any semi-supervised solution. While in their work, these constraints need to be explicitly derived, in the framework presented in this thesis constraints are implicitly defined, and the limit of their usefulness investigated.
+
+\section{Research Questions}
+Based on these considerations, the main questions that we will address in this thesis are the following:
+\begin{itemize}
+\item Can we construct a (non-trivial) semi-supervised version of some supervised classifier without making additional assumptions that were not inherent in the supervised method?
+
+\item For these classifiers, in what sense can we guarantee that they (safely) improve over the supervised alternative?
+
+\item Can we prove this notion of safe semi-supervised learning is (im)possible for other classifiers?
+\end{itemize}
+
+During these investigations, some additional questions will come up that we try to address. For instance, why do semi-supervised approaches applied to the unregularized least squares classifier fail when the dimensionality of the input sample is larger than the size of the sample? And what is a proper definition for self-learning approaches to the least squares classifier that may not work in all cases, but give decent performance in many cases? 
+
+To answer these and other questions, we will rely on both mathematical analalysis as well as results from computational simulations and experiments. What is the role of reproducibility of these experiments in pattern recognition research and how do we ensure it?
+
+\section{Important Conceptual Constructs}
+
+Before continuing with the outline of the thesis, we will cover some of the most important concepts in the thesis that we will use to address the research question, which may help put things in perspective.
+
+\subsection{Surrogate losses}
+
+The loss $L$ that is optimized in the ERM framework outlined above, does not directly correspond to the goal that many people have in mind when training a classifier. To evaluate a classifier, one often considers the error rate, the area under the ROC curve, F-score or various other measures of performance. Optimizing these losses directly poses numerical difficulties. Therefore so-called surrogate losses are usually employed which upper bound the error rate while being computationally tractable, or easier to analyse mathematically.
+
+\subsection{Margin-based Losses}
+One particular class of these losses are so-called margin-based losses. These are losses of the form $\phi(y f(\mathbf{x}))$ where $y \in \{-1,+1\}$ is the encoding of the binary class label. Margin-based losses have been studied extensively in the context of their convergence properties. \citet{Bartlett2006}, for instance, show that for any convex $\phi$ with $\phi$ differentiable at $0$ and $\phi'(0)<0$ then $\phi$ is \emph{classification calibrated}, which implies that if a sequence of measurable functions converges to the optimal risk in terms of this margin-based loss, this sequence also converges to the Bayes risk in terms of classification error \cite[Theorem 1.3c]{Bartlett2006}. Various well-known and often used classification methods can be formulated as the risk minimization of some margin-based loss, such as support vector machines, forms of boosting, logistic regression and the least squares classifier.
+
+\subsection{On Squared Loss}
+The least squares classifier can be defined as the decision function that minimizes the squared loss on the training data. For linear classifiers, one could also interpret this as encoding the vector of class labels as a numeric vector and using this as the dependent variable in linear regression.
+
+In this thesis we consider the squared loss extensively. One could argue, however, that this loss is antiquated, unsuitable or somehow non-optimal for classification \cite{Ben-David2012}. Yet the squared loss shares many properties with other commonly used loss functions. For instance, it is a margin-based loss and it is classification calibrated (see above). Moreover, as many have observed, empirically it gives similar performance in terms of the error rate as other losses on many example datasets \cite{Rifkin2003, Poggio2003, Zhang2004, Rasmussen2005}.  \citet{Rifkin2002} even notes that ``the choice between SVM and RLSC [regularized least squares classifier] should be based on computational tractability considerations''. One particular advantage of the squared loss is that it leads to a closed-form solution of the classifier which makes it easier to analyse theoretically, a property we will make use of repeatedly throughout the thesis.
+
+\subsection{Projected Estimators}
+The main concept behind the proposed robust semi-supervised learning approaches in this thesis is that of projecting a supervised classifier onto a set of potential solutions defined by the unlabeled data. We will refer to this set as the constraint set since it encodes the constraints that the unlabeled data put on the potential solutions.
+
+Projecting estimators onto sets of constraints has been considered for other problems in statistics. For instance, the case where one knows the true solution adheres to certain linear inequality constraints \citep{Schmidt1995, Schmidt1996} or constraints that form some convex set \citep{Stahlecker1996}. \citet{Schmidt1995} prove, for example, that the projection of any estimator to the set of linear inequality constraints leads to an equal or improved estimator: one that is `closer' to the true solution and dominates the non-projected estimator, given that the true solution is within the set of constraints. 
+
+In the setting considered in our work, however, we do know such constraints, all we have is labeled and unlabeled objects. How, then, can we apply these projections to the semi-supervised setting? More specifically:
+\begin{enumerate}
+\item What is the estimator that is to be projected?
+\item How do we form the constraint set?
+\item How do we measure what it means for solutions to be `close'?
+\item How do we choose a solution from the constraint set?
+\end{enumerate}
+As we will elaborate in the rest of this thesis, in our semi-supervised solutions, we propose the following answers to these questions: (1) The solution to be projected is the supervised solution. (2) The constraint set is formed implicitly by all possible supervised classifiers we could get by assigning a potential labeling to the unlabeled objects. (3) The measure depends on the loss we are interested in minimizing and (4) we find the semi-supervised solution either through minimizing the supervised loss within the constraint set (\Cref{chapter:icls,chapter:iclda}) or minimizing a particular distance measure that ensures we always get a better estimator (\Cref{chapter:projection}).
+
+<<coverexample, echo=FALSE, warning=FALSE, fig.height=3, fig.width=5, fig.cap="Dataset used to illustrate the projection example that corresponds to the projection illustrated on the cover of the thesis. The circles indicate the locations and labels of the two labeled objects. The solid line indicates the supervised decision function, while the dashed lines correspond to the locations of the two unlabeled objects">>=
+library(RSSL)
+library(ggplot2)
+library(magrittr)
+library(dplyr,warn.conflicts=FALSE)
+
+# ICLS update example
+X <- matrix(c(-1,1),2,1) 
+y <- factor(c("A","B"))
+X_u <-  matrix(c(-1,2), 2, 1) 
+  
+X_e <- cbind(1,rbind(X,X_u))
+
+w_sup <- LeastSquaresClassifier(X,y)@theta
+w_semi <- ICLeastSquaresClassifier(X,y,X_u,projection="semisupervised")@theta
+w_oracle <- LeastSquaresClassifier(rbind(X,X_u),factor(c("A","B","B","A")))@theta
+w_self <- SelfLearning(X,y,X_u,method=LeastSquaresClassifier)@model@theta
+
+data.frame(X,y=c(1,0)) %>% 
+  ggplot(aes(x=X,y=y)) +
+  geom_point(size=5) +
+  geom_vline(xintercept=-1,linetype=2) +
+  geom_vline(xintercept=2,linetype=2) +
+  scale_x_continuous(limits=c(-3,3)) +
+  geom_smooth(method="lm",se=FALSE,fullrange=TRUE,color="black") +
+  theme_thesis() +
+  ylab(toupper("Class"))
+@
+To give a preview of what such a procedure looks like geometrically and to explain the illustration on the cover of this thesis, consider \Cref{fig:coverexample}. In this one dimensional classification problem, we show  the labels for two objects, the locations of the two unlabeled objects and the supervised linear decision function. We can represent this supervised solution by two numbers: its intercept and its slope. This is represented by the white dot on the cover. Additionally, we can try every possible labeling of the unlabeled objects (including all partial assignments to the two classes), calculate the intercept and slope of the resulting classifier and plot this set of solutions. This constraint set of all classifiers possible by some labeling of the unlabeled data is depicted by the white area on the cover. The ellipses show the iso-distance lines for the distance measure used to carry out the projection, while the light-blue dot is the projected solution, corresponding to our semi-supervised solution. As you can see by the iso-distance lines from the true solution (the dark-blue dot), this solution is closer in terms of this distance measure, than the supervised solution was. If this distance measure is appropriately chosen, this distance will correspond to the loss we are interested in minimizing.
+This last statement shows the power of this projection approach as it leads to a simple proof that guarantees the semi-supervised solution is always better than the supervised solution, as we will show in \Cref{chapter:projection}.
+
+\section{A Map but not the Territory}
+Before we dive into the specifics, we will look at the outline of the chapters and indicate how they are related. In part one of the thesis, we introduce the use of constraints and projections in semi-supervised learning. In \Cref{chapter:icls}, we construct a semi-supervised classifier based on the idea of implicit constraints. Despite the fact that this approach does not require additional assumptions about the unlabeled data that were not already present in the supervised classifier, we show it is able to improve the supervised classifier using the unlabeled data in experiments on benchmark datasets and, particularly, performs robustly, meaning it almost never degrades in performance compared to the supervised alternative. Additionally, we prove, for 1D problems without intercept and infinite unlabeled data, that this semi-supervised approach will always outperform the supervised counterpart. In \Cref{chapter:iclda}, we apply this same methodology of implicit constraints to a different classifier, linear discriminant analysis, to show how the approach extends to other classifiers. 
+
+While the approach in \Cref{chapter:icls} is guaranteed to improve over the supervised learner in a very restricted setting, in \Cref{chapter:projection} we extend these results to the more general multivariate setting for a different, but related, procedure. We interpret this procedure as a projection of the supervised solution onto the implicit constraints set. For a particular distance measure we can then prove this procedure is always better than the supervised solution when evaluated in terms of the surrogate loss on the labeled and unlabeled data. 
+
+Since these performance guarantees are in terms of the surrogate loss, instead of the classification error or some other common performance measure, in part two of the thesis, we consider the importance of these surrogate losses. In \Cref{chapter:quantifying}, we discuss situations in which it is insightful to consider the surrogate loss to study the behaviour of classifiers.
+In \Cref{chapter:marginbased}, we consider these surrogate losses to prove for a particular class of classifiers based on margin-based losses that under certain conditions, safe semi-supervised learning is impossible. We also show for which cases improvement guarantees are possible, covering, among other cases, the results we obtained in \Cref{chapter:projection}.
+
+In \Cref{chapter:optimistic}, we turn away from the pessimism considered in \Cref{chapter:projection} to consider how to properly define an optimistic version of the least squares classifier. We show how to define a soft-label self-learning variant of the least squares classifier and study its properties.
+
+In \Cref{chapter:peaking}, then, we cover the peaking phenomenon in semi-supervised learning, that we ran into during some of the experiments in this thesis and which was briefly covered in \Cref{chapter:icls}. We show, for a simple semi-supervised least squares approach, where this behaviour originates and why it is more extreme than in the supervised setting.
+
+The final part of this thesis, part three, is devoted to questions concerning the reproducibility of the results of the rest of the thesis. \Cref{chapter:reproducing} discusses the concepts of reproducibility and replicability in the pattern recognition context and offers a case study of reproducing \Cref{chapter:optimistic}, as well as additional results. \Cref{chapter:rssl} describes the toolbox we implemented to produce all the results in this thesis, that can be used to reproduce these and other results in semi-supervised learning research.
+
+We end with a discussion of the findings of this thesis.

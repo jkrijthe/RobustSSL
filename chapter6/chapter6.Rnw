@@ -1,0 +1,523 @@
+\begin{abstract}
+  % Semi-supervised learning has garnered much interest for its promise to improve learning algorithms by making use of abundant unlabeled data in learning scenarios where labeling is relatively expensive. While encouraging results have been obtained in some settings, in others, using unlabeled data has been shown to lead to a decrease in performance. This work is concerned with the limits of the applicability of pessimistic semi-supervised classification. It considers to what extent we can guarantee unlabeled data to improve a semi-supervised classifier compared to a supervised classifier evaluated on the labeled and unlabeled data in terms of its surrogate loss. In this sense, our analysis shows that for linear classifiers defined by convex margin-based surrogate losses that are monotonically decreasing, it is impossible to come up with \emph{any} semi-supervised approach that is able to guarantee a safe improvement in terms of this surrogate loss. For non-monotonically decreasing loss functions, safe improvements \emph{are} possible in terms of the loss considered. We describe the examples of logistic, hinge, quadratic, and absolute loss in more detail and discuss how our results relate to earlier claims that semi-supervised learning without additional assumptions is impossible.
+  %
+We show that for linear classifiers defined by convex margin-based surrogate losses that are monotonically decreasing,  it is impossible to construct \emph{any} semi-supervised approach that is able to guarantee an improvement over the supervised classifier measured by this surrogate loss. For convex margin-based loss functions that also increase, we demonstrate safe improvements \emph{are} possible.
+\end{abstract}
+
+\section{Introduction}
+
+Semi-supervised learning has been reported to deliver encouraging results in various settings, e.g. for object detection in computer vision \citep{Rasmus2015}, protein function prediction from sequence data \citep{Weston2005} or prediction of cancer recurrence \citep{Shi2011} in the bio-medical domain and part-of-speech tagging in natural language processing \citep{Elworthy1994}.  In other settings, however, using unlabeled data has been shown to lead to a decrease in performance when compared to the supervised solution \citep{Elworthy1994, Cozman2006}. For semi-supervised classifiers to be used safely in practice, we may at least want some guarantee that they improve performance over their supervised alternatives. Some have attempted to provide such guarantees either empirically by restrictions on the parameters to be estimated \citep{Loog2010} or under particular assumptions on the data \citep{Li2015}. In general, however, it is unclear for what classifiers one can construct `safe' semi-supervised approaches that can be expected to not decrease performance, or whether this is at all possible.
+
+\subsection{Safety and Pessimism}
+This work is concerned with the limits of pessimistic semi-supervised classification. That is, we explore whether and, if so, how we can guarantee unlabeled data to improve, or at least not decrease the performance of a semi-supervised classifier in comparison to a supervised classifier. The `pessimism' refers to the property that we want this guarantee to hold for every single instantiation of a problem, even for the worst possible unknown labeling of the unlabeled data. The reason we choose such a strict criterion is that it is the only criterion that can guarantees (with probability one), that performance degradation will not occur, for the particular dataset one is faced with. Therefore, a semi-supervised approach can only be called truly safe if it guarantees non-degradation of performance in this pessimistic sense.
+
+We compare the performance of the supervised and semi-supervised classifier measured on the labeled and unlabeled data. This is, strictly speaking, a transductive setting \cite{Joachims1999}, where one is interested in the performance on a specifically defined set of objects, and not a semi-supervised setting where one is interested in induction to unseen objects. As the number of unlabeled objects grows, however, and they start to better represent the distribution of interest in the inductive/semi-supervised setting, the limits and possibilities that we derive continue to hold.
+
+\subsection{Surrogate Losses}
+As our definition of performance, we consider the surrogate loss a classifier typically optimizes and compare this loss for the supervised and the semi-supervised learner on the combined labeled and unlabeled data. The surrogate loss corresponds to the loss one would minimize if we did have labels for the unlabeled objects. Considering the same criterion in the supervised and semi-supervised case aligns the goal of constructing a semi-supervised classifier with the one used when constructing a supervised classifier. By doing this, we avoid conflating improved performance based on a change in surrogate loss function with improvements gained by the availability of unlabeled data. For the same reason we also keep the regularization parameter fixed in the objective functions of the supervised and semi-supervised classifiers. 
+
+In other words: we take the view that a semi-supervised version of, for instance, logistic regression is a classifier that still attempts to minimize logistic loss, but uses unlabeled data to improve its ability to do so. So it should be judged on how well it generalizes in terms of this intrinsic loss. If we were to compare performance in terms of some other loss, like the error rate, one runs the risk of attributing improvements to the use of unlabeled data that are, in fact, caused by other changes to the classifier. For instance, the semi-supervised classifier might implicitly use some other surrogate loss that turns out to be better aligned with the loss used for evaluation.
+
+\subsection{Outline}
+The main conclusion from our analysis (Theorems~\ref{theorem:hardlabels} and \ref{theorem:softlabels}) is that for classifiers defined by convex margin-based surrogate losses that are monotonically decreasing, it is impossible to come up with \emph{any} semi-supervised approach that is able to guarantee safe improvement. We also consider the case of non-monotonically decreasing losses and in particular explore the case of the quadratic loss.  We show under what conditions it \emph{is} possible in this case to come up with a semi-supervised classifier that provides safe improvements over the supervised classifier.
+
+The rest of this work is structured as follows. We start by introducing margin-based loss functions in the empirical risk minimization framework and the extension to the semi-supervised setting.  In this, we only treat binary linear classifiers. Though not a real restriction, it does simplify our exposition and allows us to focus on the core ideas.  In Section~\ref{section:limits}, we formalize our strict notion of safe semi-supervised learning. We first show that for the class of monotonically decreasing loss functions it is impossible to derive any semi-supervised learning strategy that is not worse than the supervised classifier for all possible labelings of the unlabeled data. We then consider the case of soft assignment of unlabeled objects to classes. Here, too, it is impossible to provide a strict improvement guarantee for this class of loss functions.  We subsequently show for what losses it is possible to get strict improvements and discuss methods that use the idea of pessimism to construct semi-supervised classifiers. In Section~\ref{section:Examples} we apply the theory to a few well-known loss functions. In Section~\ref{section:Discussion} we discuss how these results relate to other results on the (im)possibility of (safe) semi-supervised learning and what the implications of these results are for approaches to safe semi-supervised learning.
+
+\section{Preliminaries}
+We consider binary linear classifiers in the empirical risk minimization framework. Let $\mathbf{X}$ be an $L \times d$ design matrix of $L$ labeled objects, where each row $\mathbf{x}^\top$ is a $d$-dimensional vector of feature values corresponding to each labeled object. Let $\mathbf{y} \in \{{-1},{+1}\}^L$ be the corresponding label vector. The vector $\mathbf{w} \in \mathbb{R}^d$ contains the weights defining a linear classifier through $\mathrm{sign}(\mathbf{x}^\top \mathbf{w})$. We consider convex margin-based surrogate loss functions, which are loss functions of the form $\phi(y \mathbf{x}^\top \mathbf{w})$. Many well-known classifiers can be described in this way, including logistic regression, least squares classification and support vector machines \citep{Bartlett2006} (see also Figure~\ref{figure:marginbasedlosses}).
+
+
+<< marginbasedlosses, echo=FALSE, fig.cap="Different Margin-based losses", fig.lp='figure:', fig.height=4, fig.width=5, warning=FALSE, message=FALSE,cache=TRUE >>=
+library(magrittr)
+library(ggplot2)
+library(tidyr,warn.conflicts = FALSE)
+library(dplyr,warn.conflicts = FALSE)
+
+losses <- list(
+  "Decision Value" = function(o) o,
+  "Quadratic" = function(o) { (1-o)^2 },
+  "Hinge" = function(o) { pmax(1-o,0) },
+  "Logistic" = function(o) {sqrt(2)*log(1+exp(-o))},
+  "Exponential" = function(o) {exp(-o)},
+  "0-1" = function(o) {as.numeric(o<0)},
+  "Absolute" = function(o) {abs(1-o)}
+)
+
+labels <- data_frame(Loss=names(losses)[-1],
+                     x=c(2.2,-2.8,-1.5,-1.9,-2,2.8),
+                     y=c(4.0,3.2,1.6,4.0,0.8,1))
+
+lapply(losses, function(f) f(seq(-3,3,length.out=1000))) %>%
+  as_data_frame %>%
+  gather(Loss,Value,-`Decision Value`) %>%
+  ggplot(aes(x=`Decision Value`,y=Value,color=Loss,linetype=Loss)) +
+  geom_line(size=0.5) +
+  ylim(c(0,4)) +
+  geom_text(aes(x=x,y=y,label=Loss,color=Loss),
+            size=3, data=labels, 
+            family="Palatino",fontface="italic") +
+  theme_thesis() +
+  theme(legend.position="none",
+        panel.grid=element_blank()) +
+  coord_equal() +
+  xlab("DECISION VALUE") +
+  ylab("LOSS") +
+  scale_color_thesis()
+@
+
+
+\subsection{Empirical Risk Minimization}
+
+In the empirical risk minimization framework a classifier is obtained by minimizing a chosen surrogate loss $\phi$ over a set of training objects plus an optional regularization term $\Omega$, which we take to be a convex function of $\mathbf{w}$:
+\begin{equation} \label{eq:supervisedrisk}
+R_\phi(\mathbf{w},\mathbf{X},\mathbf{y}) = \sum_{i=1}^L \phi(y_i \mathbf{x}_i^\top \mathbf{w}) + \lambda \Omega(\mathbf{w})\, .
+\end{equation}
+By minimizing this with respect to $\mathbf{w}$ we get a supervised classifier:
+$$\mathbf{w}_\mathrm{sup} = \argmin_\mathbf{w} R_\phi(\mathbf{w},\mathbf{X},\mathbf{y}) \, .$$
+
+In the semi-supervised setting, we have an additional design matrix corresponding to unlabeled objects $\mathbf{X}_\mathrm{u}$, sized $U \times d$, with unknown labels $\mathbf{y}_\mathrm{u} \in \{{-1},{+1}\}^U$.
+We therefore consider the corresponding semi-supervised risk function:
+\begin{align} \label{eq:semisupervisedrisk}
+ {R}^\mathrm{semi}_\phi(\mathbf{w},\mathbf{X},\mathbf{y},\mathbf{X}_\mathrm{u},\mathbf{q}) =  R_\phi(\mathbf{w},\mathbf{X},\mathbf{y}) + \sum_{i=1}^{U} q_i \phi(\mathbf{x}_i^\top \mathbf{w}) + (1-q_i) \phi(-\mathbf{x}_i^\top \mathbf{w}) \, ,
+\end{align}
+where $\mathbf{q} \in [0,1]^U$ are what we will refer to as \emph{responsibilities}, indicating the unknown and possibly `soft' membership of each object to a class. For instance, if the true labels were known these would correspond to `hard' responsibilities $\mathbf{q}^\mathrm{true} \in \{0,1\}^U$ and the semi-supervised risk formulation becomes equal to the supervised risk formulation in Equation \eqref{eq:supervisedrisk}, where the sum is now over the $L$ labeled objects and the $U$ objects for which we did not have a label.
+
+\section{Limits of Safe Semi-supervision} \label{section:limits}
+
+Even though we know the true labeling of the unlabeled objects in Equation (\ref{eq:semisupervisedrisk}) belongs to some $\mathbf{q} \in \{0,1\}^U$, we do not know which one. We say that a semi-supervised procedure $\mathbf{w}_\mathrm{semi}$ is \emph{safe} if it is guaranteed to attain a loss on the labeled and unlabeled objects equal to or lower than the supervised solution for all possible labelings of the data, since this is guaranteed to include the true labeling of the unlabeled objects.  In the remainder of this section we formalize this definition of safety, consider the cases of hard and soft labeling, and come to our negative results: for many loss functions safe semi-supervision is, in fact, not possible.
+
+\subsection{Hard labeling}
+
+Let $ {D}_\phi$ denote the difference in terms of the chosen loss $\phi$ on a set of objects between a new classifier $\mathbf{w}$ and the supervised classifier $\mathbf{w}_\mathrm{sup}$ for some set of responsibilities for the unlabeled data:
+\begin{equation} \label{eq:difference}
+{D}_\phi(\mathbf{w}_\mathrm{semi},\mathbf{w}_\mathrm{sup},\mathbf{X},\mathbf{y},\mathbf{X}_\mathrm{u},\mathbf{q}) =  {R}^\mathrm{semi}_\phi(\mathbf{w}_\mathrm{semi},\mathbf{X},\mathbf{y},\mathbf{X}_\mathrm{u},\mathbf{q}) \nonumber  - {R}^\mathrm{semi}_\phi(\mathbf{w}_\mathrm{sup},\mathbf{X},\mathbf{y},\mathbf{X}_\mathrm{u},\mathbf{q}) \, .
+\end{equation}
+The true unknown labels can in principle correspond to any $\mathbf{q} \in \{0,1\}^U$. For a semi-supervised classifier $\mathbf{w}_\mathrm{semi}$ to be \emph{safe} we therefore need that:
+\begin{equation} \label{eq:hardcondition}
+\max_{\mathbf{q} \in \{{0},{1}\}^U} {D}_\phi(\mathbf{w}_\mathrm{semi},\mathbf{w}_\mathrm{sup},\mathbf{X},\mathbf{y},\mathbf{X}_\mathrm{u},\mathbf{q}) \leq 0 \,.
+\end{equation}
+If the inequality is strict for at least one instantiation of $\mathbf{q}$, the semi-supervised solution is different from the supervised solution and potentially better.
+Is it possible to construct some semi-supervised strategy  that has this guaranteed improvement over the supervised solution for margin-based surrogate losses? The following theorem gives a condition under which this strict improvement is never possible.
+
+\begin{theorem} \label{theorem:hardlabels}
+Let $\mathbf{w}_\mathrm{sup}$ be a minimizer of $ {R}_\phi(\mathbf{w},\mathbf{X},\mathbf{y})$ and assume it is unique. If $\phi$ is a monotonically decreasing convex margin-based loss function, meaning $\phi(a) \geq \phi(b)$ for $a\leq b$, then there is no safe semi-supervised procedure which guarantees Equation~\eqref{eq:hardcondition} while having at least one $\mathbf{q}^\ast$ for which $ {D}_\phi(\mathbf{w}_\mathrm{semi},\mathbf{w}_\mathrm{sup},\mathbf{X},\mathbf{y},\mathbf{X}_\mathrm{u},\mathbf{q}^\ast) < 0$\,.
+\end{theorem}
+\begin{proof}
+We are going to prove this by contradiction. Let us start by assuming that ${D}_\phi(\mathbf{w}_\mathrm{semi},\mathbf{w}_\mathrm{sup},\mathbf{X},\mathbf{y},\mathbf{X}_\mathrm{u},\mathbf{q}^\ast) < 0$ and define $M$ to be $R_\phi(\mathbf{w}_\mathrm{semi},\mathbf{X},\mathbf{y})-R_\phi(\mathbf{w}_\mathrm{sup},\mathbf{X},\mathbf{y})$.  The latter is the difference in surrogate loss between the semi-supervised and supervised learner on the labeled data.   Based on our assumption we can now write
+\begin{align} \label{eq:D_qast}
+M + & \sum_{i=1}^{U}  q^\ast_i (\phi(\mathbf{x}_i^\top \mathbf{w}_\mathrm{semi})- \phi(\mathbf{x}_i^\top \mathbf{w}_\mathrm{sup})) & \\
+ &+ (1-q^\ast_i) (\phi(-\mathbf{x}_i^\top \mathbf{w}_\mathrm{semi}) - \phi(-\mathbf{x}_i^\top \mathbf{w}_\mathrm{sup})) & < 0 \, . \nonumber
+\end{align}
+
+Let $A_i = \phi(\mathbf{x}_i^\top \mathbf{w}_\mathrm{semi})- \phi(\mathbf{x}_i^\top \mathbf{w}_\mathrm{sup})$ and $B_i = \phi(-\mathbf{x}_i^\top \mathbf{w}_\mathrm{semi})- \phi(-\mathbf{x}_i^\top \mathbf{w}_\mathrm{sup})$. Since $\phi$ is monotonically decreasing, either $A_i \geq 0$ and $B_i \leq 0$, or $A_i \leq 0$ and $B_i \geq 0$. Set $q^\mathrm{new}_i=1$ in the former case and $q^\mathrm{new}_i=0$ in the latter. Then, when using $\mathbf{q}^\mathrm{new}$ instead of $\mathbf{q}^\ast$ in Equation~\eqref{eq:D_qast}, the sum will be non-negative. Also, $M > 0$, because $\mathbf{w}_\mathrm{sup}$ is the unique minimizer of ${R}_\phi(\mathbf{w},\mathbf{X},\mathbf{y})$ and $\mathbf{w}_\mathrm{semi} \neq \mathbf{w}_\mathrm{sup}$. We therefore have that 
+% \begin{align}
+% &\sum_{i=1}^{U} q^\ast_i \phi(\mathbf{x}_i^\top \mathbf{w}_\mathrm{semi}) + (1-q^\ast_i) \phi(-\mathbf{x}_i^\top \mathbf{w}_\mathrm{semi}) \nonumber \\ & < \sum_{i=1}^{U} q^\ast_i \phi(\mathbf{x}_i^\top \mathbf{w}_\mathrm{sup}) + (1-q^\ast_i) \phi(-\mathbf{x}_i^\top \mathbf{w}_\mathrm{sup}) \, . \nonumber
+% \end{align}
+% Now consider the set of indices $i \in \mathcal{I}$ of all objects for which the loss of the semi-supervised solution is lower than the loss of the supervised solution, given the responsibility $\mathbf{q}^\ast$, i.e.,
+% \begin{align}
+% q^\ast_i & \phi(\mathbf{x}_i^\top \mathbf{w}_\mathrm{semi}) + (1-q_i^\ast) \phi(-\mathbf{x}_i^\top \mathbf{w}_\mathrm{semi}) \nonumber \\ & < q^\ast_i \phi(\mathbf{x}_i^\top \mathbf{w}_\mathrm{sup}) + (1-q_i^\ast) \phi(-\mathbf{x}_i^\top \mathbf{w}_\mathrm{sup}) \, . \nonumber
+% \end{align}
+% $\mathcal{I}$ is not empty, because by construction the total loss on the unlabeled objects for responsibility $\mathbf{q}^\ast$ is lower for $\mathbf{w}_\mathrm{semi}$ than for $\mathbf{w}_\mathrm{sup}$. For each $i \in \mathcal{I}$, either $q^\ast_i = 1$ or $q^\ast_i = 0$.
+% If $q^\ast_i = 1$, $\phi(\mathbf{x}_i^\top \mathbf{w}_\mathrm{semi})<\phi(\mathbf{x}_i^\top \mathbf{w}_\mathrm{sup})$. Because $\phi$ is monotonically decreasing, it holds that $\mathbf{x}_i^\top \mathbf{w}_\mathrm{semi} > \mathbf{x}_i^\top \mathbf{w}_\mathrm{sup}$. We also have $-\mathbf{x}_i^\top \mathbf{w}_\mathrm{semi} < -\mathbf{x}_i^\top \mathbf{w}_\mathrm{sup}$ and because $\phi$ is monotonically decreasing $\phi(-\mathbf{x}_i^\top \mathbf{w}_\mathrm{semi}) \geq \phi(-\mathbf{x}_i^\top \mathbf{w}_\mathrm{sup})$.
+% So changing label from $q^\ast_i = 1$ to $q^\mathrm{new}_i = 0$, the inequality is reversed. If $q^\ast_i = 0$, using the same argument, the inequality is also reversed if we choose $q^\mathrm{new}_i=1$ for these objects. This gives us
+% \begin{align}
+% q^\mathrm{new}_i & \phi(\mathbf{x}_i^\top \mathbf{w}_\mathrm{semi}) + (1-q_i^\mathrm{new}) \phi(-\mathbf{x}_i^\top \mathbf{w}_\mathrm{semi})\nonumber \\ & \geq q^\mathrm{new}_i \phi(\mathbf{x}_i^\top \mathbf{w}_\mathrm{sup}) + (1-q_i^\mathrm{new}) \phi(-\mathbf{x}_i^\top \mathbf{w}_\mathrm{sup}) \nonumber
+% \end{align}
+% for each  $i \in \mathcal{I}$. Since $i \in \mathcal{I}$ are the only objects for which the loss on the unlabeled objects decreased for the semi-supervised classifier compared and if we let $q_i^\mathrm{new}=q_i^\ast$ for $i \notin \mathcal{I}$ we have
+$$ {D}_\phi(\mathbf{w}_\mathrm{semi},\mathbf{w}_\mathrm{sup},\mathbf{X},\mathbf{y},\mathbf{X}_\mathrm{u},\mathbf{q}^\mathrm{new}) > 0 \, ,$$
+which contradicts Equation~\eqref{eq:hardcondition}.
+% This shows that if there is some labeling $\mathbf{q}^\ast$ for which $\mathbf{w}_\mathrm{semi}$ leads to improved performance, it is always possible to construct a different labeling $\mathbf{q}^\mathrm{new}$ for which $\mathbf{w}_\mathrm{semi}$ leads to a worse performance than $\mathbf{w}_\mathrm{sup}$.
+\end{proof}
+
+\begin{remark}
+Alternatively, we can drop the requirement that $\mathbf{w}_\mathrm{sup}$ is the unique minimizer of $ {R}_\phi(\mathbf{w},\mathbf{X},\mathbf{y})$ by requiring the loss functions to be strictly decreasing.
+\end{remark}
+
+% TODO: What happens when the constrast is applied to the unlabeled objects only?
+
+
+\subsection{Beyond Hard Labelings}
+In Equation \eqref{eq:hardcondition} we considered improvement over all hard labelings of the unlabeled data. Alternatively we could also consider improvements for the larger set of all soft assignments of labels to classes, defining safety to mean
+\begin{equation} \label{eq:softcondition}
+\max_{\mathbf{q} \in [0,1]^U} {D}_\phi(\mathbf{w}_\mathrm{semi},\mathbf{w}_\mathrm{sup},\mathbf{X},\mathbf{y},\mathbf{X}_\mathrm{u},\mathbf{q}) \leq 0 \,.
+\end{equation}
+If there is at least one $\mathbf{q} \in [0,1]^U$ for which the inequality is strict, the semi-supervised solution is potentially better than the supervised solution. There are several reasons why this is an interesting relaxation to consider. First of all it requires the semi-supervised solution to guarantee improvements for a larger class of responsibilities than just the hard labelings, meaning it becomes more difficult to construct a procedure with this property. If a procedure guarantees improvement in this sense, it implies it also works for all possible hard labelings. Secondly, it corresponds to a scenario different from the hard labeling where there is uncertainty in the labels of the unlabeled objects. And lastly, the convex constraint makes the problem more amenable to analysis and is, in fact, used by approaches such as MCPL \citep{Loog2016} and ICLS \citep{Krijthe2015}.
+
+The set of classifiers given by all different responsibilities turns out to be a useful concept.
+\begin{definition}\label{def:conset}
+The constraint set $\mathcal{C}_\phi$ is the set of all possible classifiers that can be obtained by minimizing the semi-supervised loss for any vector of responsibilities $\mathbf{q}$ assigned to the unlabeled data, i.e.,
+$$\mathcal{C}_\phi = \left\{ \argmin_\mathbf{w} {R}^\mathrm{semi}_\phi(\mathbf{w},\mathbf{X},\mathbf{y},\mathbf{X}_\mathrm{u},\mathbf{q}) \Big| \mathbf{q} \in [0,1]^U \right\} \, . $$
+\end{definition}
+
+The following lemma provides an intermediary step towards our second negative result.  It tells us that no strict improvement is possible if the supervised solution is already part of the constraint set.
+\begin{lemma} \label{lemma:limitconstrainedspace}
+If ${R}_\phi(\mathbf{w},\mathbf{X},\mathbf{y})$ is strictly convex and $\mathbf{w}_\mathrm{sup} \in \mathcal{C}_\phi$, then there is a soft assignment $\mathbf{q}^\ast$ such that for every choice of semi-supervised classifier $\mathbf{w}_\mathrm{semi} \neq \mathbf{w}_\mathrm{sup}$:  $${D}_\phi(\mathbf{w}_\mathrm{semi},\mathbf{w}_\mathrm{sup},\mathbf{X},\mathbf{y},\mathbf{X}_\mathrm{u},\mathbf{q}^\ast) > 0\,.$$
+\end{lemma}
+\begin{proof}
+As $\mathbf{w}_\mathrm{sup} \in \mathcal{C}_\phi$ there is a soft labeling $\mathbf{q}^\ast$ such that $\mathbf{w}_\mathrm{sup}$ minimizes the semi-supervised risk ${R}^\mathrm{semi}_\phi(\mathbf{w},\mathbf{X},\mathbf{y},\mathbf{X}_\mathrm{u},\mathbf{q}^\ast)$.  This risk function is strictly convex because the supervised risk is strictly convex and therefore $\mathbf{w}_\mathrm{sup}$ is its unique minimizer.  This immediately implies that for every $\mathbf{w}_\mathrm{semi} \neq \mathbf{w}_\mathrm{sup}$, we have that $${R}^\mathrm{semi}_\phi(\mathbf{w}_\mathrm{semi},\mathbf{X},\mathbf{y},\mathbf{X}_\mathrm{u},\mathbf{q}^\ast) > {R}^\mathrm{semi}_\phi(\mathbf{w}_\mathrm{sup},\mathbf{X},\mathbf{y},\mathbf{X}_\mathrm{u},\mathbf{q}^\ast)\,.$$
+\end{proof}
+\begin{remark}
+The requirement to have a strictly convex supervised risk function can be relaxed.  What we basically need in the proof is that $\mathbf{w}_\mathrm{sup}$ is the unique optimizer for ${R}^\mathrm{semi}_\phi(\mathbf{w},\mathbf{X},\mathbf{y},\mathbf{X}_\mathrm{u},\mathbf{q}^\ast)$.  Nevertheless, unlike, for instance, a hinge loss that is not regularized by something like a $2$-norm of the weight vector, many interesting objective functions are strictly convex.
+\end{remark}
+
+For monotonically decreasing margin-based losses, we now show that we can always explicitly construct a $\mathbf{q}^\ast$, such that the corresponding semi-supervised solution equals the original supervised one.  With this, a result similar to Theorem~\ref{theorem:hardlabels} for the soft-assignment guarantee directly follows, but first we formulate that explicit construction of the necessary soft labeling.
+\begin{lemma}\label{lemma:responsibilities}
+If $\phi$ is a monotonically decreasing margin-based loss function where for each unlabeled object $\mathbf{x}$, $\phi'(-\mathbf{x}^\top \mathbf{w}_\mathrm{sup})$ and $\phi'(\mathbf{x}^\top \mathbf{w}_\mathrm{sup})$ exist, we can recover $\mathbf{w}_\mathrm{sup}$ by minimizing the semi-supervised loss by assigning  responsibilities $\mathbf{q} \in [0,1]^U$ as follows:
+\begin{equation}\label{eq:solutionq}
+q = \frac{\phi'(-\mathbf{x}^\top \mathbf{w}_\mathrm{sup})}{\phi'(\mathbf{x}^\top \mathbf{w}_\mathrm{sup}) + \phi'(-\mathbf{x}^\top \mathbf{w}_\mathrm{sup})}\,.
+\end{equation}
+\end{lemma}
+
+\begin{proof}
+Consider the case where we have one unlabeled object $\mathbf{x}$ with responsibility $q$. The semi-supervised objective then becomes
+\begin{align}
+{R}^\mathrm{semi}_\phi (\mathbf{w})  = & {R}^\mathrm{sup}_\phi(\mathbf{w},\mathbf{X},\mathbf{y}) \nonumber \\
+& + q \phi(\mathbf{x}^\top \mathbf{w}) + (1-q) \phi(-\mathbf{x}^\top \mathbf{w}) \, . \nonumber
+\end{align}
+We need to find a $q \in [0,1]$ that causes the gradient of this objective, evaluated in the supervised solution, to remain equal to zero:
+\begin{equation}\label{eq:qequality}
+\begin{split}
+\nabla_{\mathbf{w}}  {R}_\phi^\mathrm{semi}({\mathbf{w}_\mathrm{sup}}) = &\,  \mathbf{0} + q \phi'(\mathbf{x}^\top \mathbf{w}_\mathrm{sup}) \mathbf{x} \\
+& \,\,\,\,\, - (1-q) \phi'(-\mathbf{x}^\top \mathbf{w}_\mathrm{sup}) \mathbf{x}  \\
+% & + 2 (\lambda-\mu) \mathbf{w}_\mathrm{sup} \\
+= & \,  \mathbf{0}
+\end{split}
+\end{equation}
+where $\phi'$ denotes the derivative of $\phi(a)$ with respect to $a$. As long as $\phi'(\mathbf{x}^\top \mathbf{w}_\mathrm{sup}) + \phi'(-\mathbf{x}^\top \mathbf{w}_\mathrm{sup}) \neq 0$, we can explicitly solve for $q$ to get
+\begin{equation}
+q = \frac{\phi'(-\mathbf{x}^\top \mathbf{w}_\mathrm{sup})}{\phi'(\mathbf{x}^\top \mathbf{w}_\mathrm{sup}) + \phi'(-\mathbf{x}^\top \mathbf{w}_\mathrm{sup})} \,.
+\end{equation}
+If $\phi$ is a monotonically decreasing loss, then
+$$ \phi'(a) \leq 0 $$
+and for each object $0 \leq q\leq 1$. Since this can be done for each object individually, we can do it for all objects to get a vector of responsibilities $\mathbf{q} \in [0,1]^U$.
+\end{proof}
+
+Now that we have shown by a constructive argument that for monotonically decreasing margin-based losses it always holds that  $\mathbf{w}_\mathrm{sup} \in \mathcal{C}_\phi$, the following result is straightforward.
+\begin{theorem} \label{theorem:softlabels}
+Let $\phi$ be a monotonically decreasing convex margin-based loss function and $\mathbf{w}_\mathrm{sup}$ be the unique minimizer of $ {R}_\phi(\mathbf{w},\mathbf{X},\mathbf{y})$. There is no semi-supervised classifier $\mathbf{w}_\mathrm{semi}$ for which Equation~\eqref{eq:softcondition} holds, while having at least one $\mathbf{q}^\ast$ for which $$ {D}_\phi(\mathbf{w}_\mathrm{semi},\mathbf{w}_\mathrm{sup},\mathbf{X},\mathbf{y},\mathbf{X}_\mathrm{u},\mathbf{q}^\ast) < 0\,.$$
+\end{theorem}
+
+\begin{proof}
+This follows directly from Lemma~\ref{lemma:limitconstrainedspace} and Lemma~\ref{lemma:responsibilities}.
+\end{proof}
+
+This means that for monotonically decreasing loss functions it is impossible to construct a semi-supervised learner that is different from the supervised learner and, in terms of its surrogate loss on the full training data, is never outperformed by the supervised solution.  In other words, if the semi-supervised classifier is taken to be different from the supervised classier, there is always the risk that there is a true labeling of the unlabeled data for which the loss of the semi-supervised learner on the full data becomes larger than the loss of the supervised one.
+
+Is it unexpected that semi-supervised learning cannot be done safely in this setting?  For whom it is not, it may then come as a surprise that there are margin-based losses for which it is actually possible to construct safe semi-supervised learners.
+
+%
+% \subsection{Different regularization terms}
+% What happens if an additional regularization term $\mu \Omega(\mathbf{w})$ is added to the semi-supervised loss?
+%
+% Looking at Equation \eqref{eq:derivsemi} while considering multiple unlabeled objects, we have:
+% \begin{align} \label{eq:derivsemi}
+% \nabla_{\mathbf{w}} \mathcal{R}_\mathrm{semi}({\mathbf{w}_\mathrm{sup}}) = &  \mathbf{0} \\ \nonumber
+% & + \sum_{i=1}^U q_i \phi'(\mathbf{x_i}^\top \mathbf{w}_\mathrm{sup}) \mathbf{x_i} - (1-q_i) \phi'(-\mathbf{x_i}^\top \mathbf{w}_\mathrm{sup}) \mathbf{x_i}^\top \mathbf{w}_\mathrm{sup}) \\ \nonumber
+%  & + 2 (\mu) \mathbf{w} \\ \nonumber
+% = &  \mathbf{0} \nonumber
+% \end{align}
+%
+% When we have little data, this is an overdetermined system. As the number of unlabeled objects increases we can find a q, but it is not clear whether this q is within the bounds $[0,1]$.
+%
+% What happens when $\mu>\lambda$ and why does this make sense? (Stronger regularization, so we need to update anyway)
+% What happens when $\mu<\lambda$ and why does this make sense? Numerical example. Consider the case where we have $100000$ objects and $1$ unlabeled object. This shows it might not make sense to omit the regularization term in the semi-supervised objective function.
+
+\section{Possibilities for Safe SSL}
+If we look beyond the previous losses, and consider non-monotonically decreasing ones, we may still be able to get a classifier that is guaranteed to be better than the supervised solution in terms of the surrogate loss, even in the pessimistic regime.
+When can we expect safe semi-supervised learning to allow for improvements of its supervised counterpart?
+And if improvements are possible, how then do we construct an actual classifier that does so in a safe way?
+
+To construct a semi-supervised learner that at least is guaranteed to never be worse, we need to find $\mathbf{w}_\mathrm{semi}$, the $\mathbf{w}$ that minimizes $ {D}_\phi(\mathbf{w},\mathbf{w}_\mathrm{sup},\mathbf{X},\mathbf{y},\mathbf{X}_\mathrm{u},\mathbf{q})$ for all possible $\mathbf{q}$.  This corresponds, more precisely, to the following minimax problem:
+\begin{equation} \label{eq:minmaxproblem}
+\min_{\mathbf{w}} \max_{\mathbf{q} \in [0,1]^U} {D}_\phi(\mathbf{w},\mathbf{w}_\mathrm{sup},\mathbf{X},\mathbf{y},\mathbf{X}_\mathrm{u},\mathbf{q}) \, .
+\end{equation}
+This is a formulation similar to the one used by \citet{Loog2016}, where instead of margin-based losses, the loss functions are log-likelihoods of a generative model. It is clear that Equation~\eqref{eq:minmaxproblem} can never be larger than 0.  This simply indicates that we can always find a semi-supervised learner that is at least as good as the supervised one, by simply sticking to the supervised solution. To show that we can sometimes do better than that, consider the following.
+
+If ${R}_\phi^\mathrm{semi}$ is convex in $\mathbf{w}$, then since the objective is linear in $\mathbf{q}$ and $[0,1]^U$ is a compact space we can invoke \citep[Corrolary 3.3]{Sion1958}, which states that the value of the minimax problem is equal to the value of the maximin problem:
+\begin{equation} \label{eq:minmaxproblem2}
+ \max_{\mathbf{q} \in [0,1]^U} \min_{\mathbf{w}} {D}_\phi(\mathbf{w},\mathbf{w}_\mathrm{sup},\mathbf{X},\mathbf{y},\mathbf{X}_\mathrm{u},\mathbf{q}) \, .
+\end{equation}
+Assume the function ${D}_\phi$ is strictly convex in $\mathbf{w}$ for every fixed $\mathbf{q}$. Now suppose $\mathbf{w}_\mathrm{sup}$ is not in $\mathcal{C}_\phi$. In that case, the inner minimization in Equation~\eqref{eq:minmaxproblem2} is always strictly smaller than $0$ for each $\mathbf{q}$ because of the strict convexity of the loss. This means that  Equation~\eqref{eq:minmaxproblem2} is strictly smaller than $0$ and in turn the same holds for Equation~\eqref{eq:minmaxproblem}. 
+
+So, if $\mathbf{w}_\mathrm{sup} \notin \mathcal{C}_\phi$, $\mathbf{w}_\mathrm{semi}$ will strictly improve upon $\mathbf{w}_\mathrm{sup}$.
+
+\subsection{Some Sufficient Conditions}
+
+So all that is required to show that the procedure just described leads to an improved classifier is therefore that $\mathbf{w}_\mathrm{sup} \notin \mathcal{C}_\phi$.  For an unlabeled data set consisting of a single sample $\mathbf{x}$, this is readily done by reconsidering the proof of Lemma~\ref{lemma:responsibilities}. In particular, rewriting Equation~\eqref{eq:qequality}, we can conclude the following:
+\begin{lemma}
+If for $\mathrm{X}_\mathrm{u} = \mathbf{x}^\top$ there is no $q \in [0,1]$ such that
+\[
+(\phi'(\mathbf{x}^\top \mathbf{w}_\mathrm{sup}) + \phi'(-\mathbf{x}^\top \mathbf{w}_\mathrm{sup})) \mathbf{x} q = (\phi'(-\mathbf{x}^\top \mathbf{w}_\mathrm{sup})) \mathbf{x}
+\]
+then $\mathbf{w}_\mathrm{sup} \notin \mathcal{C}_\phi$ so $\mathbf{w}_\mathrm{semi}$ has to be different from $\mathbf{w}_\mathrm{sup}$ and, therefore, the former has to improve over the latter.
+\end{lemma}
+
+The case in which $U>1$ turns out to be hard to fully characterize.  Again starting from Equation~\eqref{eq:qequality}, we can state that if there is no $\mathbf{q}$ such that
+\[
+\sum_{i=1}^U  q_i \phi'(\mathbf{x}_i^\top \mathbf{w}_\mathrm{sup}) \mathbf{x}_i - (1-q_i) \phi'(-\mathbf{x}_i^\top \mathbf{w}_\mathrm{sup}) \mathbf{x}_i = \mathbf{0}
+\]
+then the gradient evaluated in the supervised solution of the objective function over all training data is not zero and so the semi-supervised solution is different, therefore improving over the supervised solution.  But this result is hardly insightful. For one, it is unclear if this at all happens when $U>1$.  We do, however, have a sufficient condition that leads the semi-supervised learner to improve over the supervised counterpart.  For this, we consider convex, margin-based losses $\phi$ that are decreasing to the left of 1 and to the right of 1 start to increase monotonically, as for instance, in the cases of the quadratic or absolute loss.  So these losses increasingly penalize overestimation of the label value of every object.
+\begin{theorem}\label{eq:possible}
+Let
+\[
+\phi^\prime(a)
+\begin{cases}
+\le 0, & \text{if $a \le 1$}\\
+> 0, & \text{if $a > 1$.}
+\end{cases}
+\]
+If, for all $\mathbf{x} \in \mathrm{X}_\mathrm{u}$, $|\mathbf{x}^\top \mathbf{w}_\mathrm{sup}|$ is larger than $1$, then $\mathbf{w}_\mathrm{semi} \neq \mathbf{w}_\mathrm{sup}$.  That is, we get an improved semi-supervised estimator if all points in $\mathrm{X}_\mathrm{u}$ are outside of the margin.
+\end{theorem}
+
+\begin{proof}
+Without loss of generality, we can assume that we have translated, rotated, and scaled our data such that the supervised solution is given by $\mathbf{w}_\mathrm{sup} = (1,0,\ldots,0)^\top$.  Such standardization of the data does not lead to an essentially different problem.
+
+It is easy to check that for every $\mathbf{x}_i^\top \mathbf{w}_\mathrm{sup} = \mathbf{x}_{i1}>1$, we have $\phi'(\mathbf{x}_i^\top \mathbf{w}_\mathrm{sup}) = \phi'(\mathbf{x}_{i1}) > 0$, where $\mathbf{x}_{i1}$ indicates the first coordinate of sample $\mathbf{x}_i$.  Likewise, we have $\phi'(-\mathbf{x}_i^\top \mathbf{w}_\mathrm{sup}) = \phi'(-\mathbf{x}_{i1}) < 0$.  It therefore follows, for every choice of $q_i \in [0,1]$, that $q_i \phi'(\mathbf{x}_i^\top \mathbf{w}_\mathrm{sup}) \mathbf{x}_{i1} - (1-q_i) \phi'(-\mathbf{x}_i^\top \mathbf{w}_\mathrm{sup}) \mathbf{x}_{i1} > 0$.  Likewise, for every $\mathbf{x}_i^\top \mathbf{w}_\mathrm{sup} = \mathbf{x}_{i1}<1$, we have the same result: for every choice of $q_i \in [0,1]$, $q_i \phi'(\mathbf{x}_i^\top \mathbf{w}_\mathrm{sup}) \mathbf{x}_{i1} - (1-q_i) \phi'(-\mathbf{x}_i^\top \mathbf{w}_\mathrm{sup}) \mathbf{x}_{i1} > 0$.  This shows that the first equation in the system given by
+\[
+\sum_{i=1}^U  q_i \phi'(\mathbf{x}_i^\top \mathbf{w}_\mathrm{sup}) \mathbf{x}_i - (1-q_i) \phi'(-\mathbf{x}_i^\top \mathbf{w}_\mathrm{sup}) \mathbf{x}_i = \mathbf{0}
+\]
+does not equal $0$, and so the gradient differs from zero, meaning that the supervised solution cannot be the optimal one.
+\end{proof}
+
+The restriction that all points should be outside of the margin is, of course, rather strong.  But, as indicated, the requirement is only sufficient and certainly not necessary. Subsection~\ref{section:quadraticloss} gives an additional result for the squared loss.
+
+
+
+\subsection{Methods for Pessimistic SSL}
+
+The idea of using the constraint space to construct a semi-supervised learner has been operationalized in two ways. In implicitly constrained semi-supervised learning, \citet{Krijthe2017} propose to minimize a supervised loss function on the $L$ labeled objects, under the constraint that this solution has to be the loss minimizer on all of the data, for a particular (partial) labeling of the data:
+$$\min_{\mathbf{w} \in \mathcal{C}_\phi} R_\phi(\mathbf{w})$$
+with $\mathcal{C}_\phi$ as in Definition \ref{def:conset}.
+If $\mathbf{w}_\mathrm{sup} \in \mathcal{C}_\phi$, this approach will not update the supervised classifier. Only if $\mathbf{w}_\mathrm{sup} \notin \mathcal{C}_\phi$ will the implicitly constrained solution be different from the supervised alternative.
+
+A related but different approach is to enforce the non-degradation guarantee by using Equation~\eqref{eq:minmaxproblem} directly, proposed by \citet{Loog2016}. This approach is referred to as a pessimistic and contrastive objective, where the pessimism refers to considering all possible labelings, and the contrast refers to the fact that the loss of the semi-supervised solution is compared to the loss of the supervised solution.
+
+Thus, in both implicitly constrained and contrastive pessimistic learning, the minimization only leads to a solution different from $\mathbf{w}_\mathrm{sup}$ if $\mathbf{w}_\mathrm{sup} \notin \mathcal{C}_\phi$. In both cases there are theorems stating that, under certain conditions, if the resulting classifier is different from the supervised solution, it improves over the supervised alternative.
+
+\section{Examples} \label{section:Examples}
+In this section, will consider examples of monotonically decreasing losses and non-monotonically decreasing losses, corresponding to well-known classifiers. The results are summarized in Table~\ref{table:responsibilities}. For monotonically decreasing losses, the range of the responsibilities will always be between $[0,1]$, meaning the (partial) labels of the unlabeled data can always be set in such a way that the supervised solution is obtained from the semi-supervised objective function. This in turn implies that no safe semi-supervised method, beyond just taking the supervised solution, exists for these losses. This shows, for instance, that it is not possible to construct a safe semi-supervised version of the support vector machine or for logistic regression. The quadratic loss is an example of a loss for which it is not always possible to set the responsibilities in such a way as to recover the supervised solution and a safe semi-supervised classifier is sometimes possible. We derive a condition when this improvement will occur. 
+
+\begin{table*}
+\caption{Margin-based loss functions and their corresponding responsibilities}
+\label{table:responsibilities}
+
+\centering
+\footnotesize
+\begin{tabular}{llll}
+\toprule
+%\abovespace\belowspace
+\textbf{Name} & $\phi(y \mathbf{x}^\top \mathbf{w}_\mathrm{sup})$ & $q(\mathbf{x}^\top \mathbf{w}_\mathrm{sup})$ & \textbf{Range} \\
+\midrule
+%\abovespace
+Logistic & $\sqrt{2} \log(1+\exp(-y \mathbf{x}^\top \mathbf{w}_\mathrm{sup})$ & $(1+\exp(-\mathbf{x}^\top \mathbf{w}_\mathrm{sup})))^{-1}$ & $(0,1)$ \\[0.2cm]
+
+Hinge & $\max(1-y \mathbf{x}^\top \mathbf{w}_\mathrm{sup},0)$ & $\begin{cases}
+    \frac{1}{2} ,& \text{if } -1 < \mathbf{x}^\top \mathbf{w}_\mathrm{sup} < 1 \\
+    1,              & \text{if } \mathbf{x}^\top \mathbf{w}_\mathrm{sup} > 1 \\
+    0 & \text{if } \mathbf{x}^\top \mathbf{w}_\mathrm{sup} < -1
+\end{cases}$ & $\{0,\tfrac{1}{2},1\}$ \\[0.6cm]
+Exponential & $\exp(-y \mathbf{x}^\top \mathbf{w}_\mathrm{sup})$ & $\exp(\mathbf{x}^\top \mathbf{w}_\mathrm{sup}) (\exp(-\mathbf{x}^\top \mathbf{w}_\mathrm{sup})+\exp(\mathbf{x}^\top \mathbf{w}_\mathrm{sup}))^{-1}$ & $(0,1)$ \\[0.2cm]
+%\belowspace
+Quadratic & $(1-y \mathbf{x}^\top \mathbf{w}_\mathrm{sup})^2$ & $\tfrac{1}{2} (\mathbf{x}^\top \mathbf{w}_\mathrm{sup} +1)$ & $(-\infty,\infty)$ \\[0.2cm]
+Absolute & $|1-y \mathbf{x}^\top \mathbf{w}|$ & $\begin{cases}
+\tfrac{1}{2} ,& \text{if } -1 < y \mathbf{x}^\top \mathbf{w}_\mathrm{sup} < 1\\
+\text{No solution},& \text{otherwise}
+\end{cases}$ & $\{\tfrac{1}{2}\}$ \\[0.2cm]
+\bottomrule
+\end{tabular}
+\end{table*}
+
+
+<<responsibilities, echo=FALSE, fig.cap="For a single unlabeled object, the responsibility that causes a zero gradient of the semi-supervised objects at the supervised solution, for different decision values of the unlabeled object.", fig.lp='figure:', fig.height=6, warning=FALSE, message=FALSE,cache=TRUE >>=
+objectives <- list(
+  "Decision Value" = function(o) {o},
+  "Quadratic" = function(o) {(o/2+1/2)},
+  "Logistic" = function(o) {1/(1+exp(-o))},
+  "Hinge" = function(o) { sapply(o,function(x) {if(x>1) 1 else if(x < -1) 0 else 0.5}) },
+  "Exponential" = function(o) { exp(o)/(exp(-o)+exp(o)) }
+)
+
+lapply(objectives, function(f) f(seq(-2,2,length.out=1000))) %>%
+  as_data_frame %>%
+  gather(Loss,Value,-`Decision Value`) %>%
+  ggplot(aes(x=`Decision Value`,y=Value,color=Loss)) +
+  geom_line(size=1) +
+  theme_minimal() +
+  ylab("q") +
+  theme_thesis() +
+  theme(text=element_text(family="Palatino"), axis.title.y=element_text(family="Palatino", angle=0,vjust = 0.5)) +
+  coord_equal(ylim = c(-1.5,2.5)) +
+  labs(color="",shape="") +
+  xlab("DECISION VALUE") +
+  scale_color_thesis()
+@
+
+\subsection{Logistic Loss}
+
+Consider the logistic loss function given by
+$$\phi(y \mathbf{x}^\top \mathbf{w})=\log(1+\exp(-y \mathbf{x}^\top \mathbf{w}))\,,$$
+and whose minimization leads to the logistic regression classifier. Its derivative is given by
+$$\phi^\prime (y\mathbf{x}^\top \mathbf{w}) = \frac{-\exp(-y\mathbf{x}^\top \mathbf{w})}{1+\exp(-y\mathbf{x}^\top \mathbf{w})}\,,$$
+from which we can verify it is a monotonically decreasing loss.
+Applying Equation~\eqref{eq:solutionq} we find that
+\begin{align}
+q = & \frac{-\exp(\mathbf{x}^\top \mathbf{w}_\mathrm{sup})}{1+\exp(\mathbf{x}^\top \mathbf{w}_\mathrm{sup})} \nonumber \\
+ & \times  \left( \frac{-\exp(-\mathbf{x}^\top \mathbf{w}_\mathrm{sup})}{1+\exp(-\mathbf{x}^\top \mathbf{w}_\mathrm{sup})} + \frac{-\exp(\mathbf{x}^\top \mathbf{w}_\mathrm{sup})}{1+\exp(\mathbf{x}^\top \mathbf{w}_\mathrm{sup})}\right)^{-1} \, . \nonumber
+ \end{align}
+Because the second term equals $-1$, after rewriting the first term, we have
+$$ q = \frac{1}{1+\exp(-\mathbf{x}^\top \mathbf{w}_\mathrm{sup})} \,\, .$$
+%This is equal to the class posterior of the positive class, given by the logistic regression model. 
+Thus we see that the responsibility assigned to the new object is exactly the class posterior assigned by logistic regression.
+
+\subsection{Support Vector Machine}
+The hinge loss, employed in support vector classification, has the form
+$$\phi(y\mathbf{x}^\top \mathbf{w})=\max(1-y \mathbf{x}^\top \mathbf{w},0) \, .$$
+The value for the derivative at all points except $1-y \mathbf{x}^\top \mathbf{w}=0$ is given by
+$$
+\phi^\prime (y \mathbf{x}^\top \mathbf{w}) =
+\begin{cases}
+-1 ,& \text{if } 1-y \mathbf{x}^\top \mathbf{w}>0\\
+0,& \text{otherwise} \, .
+\end{cases}
+$$
+Plugging this into Equation~\eqref{eq:solutionq}, we have that
+$$
+q =
+\begin{cases}
+    \frac{1}{2} ,& \text{if } -1 < \mathbf{x}^\top \mathbf{w}_\mathrm{sup} < 1\\
+    1,              & \text{if } \mathbf{x}^\top \mathbf{w}_\mathrm{sup} > 1 \\
+    0 & \text{if } \mathbf{x}^\top \mathbf{w}_\mathrm{sup} < -1 \, .
+\end{cases}
+$$
+If the prediction is strongly positive (respectively, negative), it will be assigned to the positive (negative) class. If on the other hand, it is within the margin, it gets assigned to both classes equally.
+It means that for the unlabeled objects in the margin, any change in $\mathbf{x}^\top \mathbf{w}_\mathrm{sup}$ has an opposite contribution for the part of the loss corresponding to the positive and the negative class. Only by weighting the two options equally will a change in $\mathbf{x}^\top \mathbf{w}_\mathrm{sup}$ not yield a change in the loss.
+
+\subsection{Quadratic Loss} \label{section:quadraticloss}
+Now consider the quadratic loss, which is a non-monotonically decreasing loss function:
+$$\phi(y \mathbf{x}^\top \mathbf{w})=(1-y \mathbf{x}^\top \mathbf{w})^2 \,.$$
+Its derivative is
+$$\phi^\prime(y \mathbf{x}^\top \mathbf{w}) = - 2 (1-y \mathbf{x}^\top \mathbf{w}) \, .$$
+Again using \eqref{eq:solutionq} we find that
+$$q = \frac{-2 (1+\mathbf{x}^\top \mathbf{w}_\mathrm{sup})}{-2 (1-\mathbf{x}^\top \mathbf{w}_\mathrm{sup}) -2 (1+\mathbf{x}^\top \mathbf{w}_\mathrm{sup})}$$
+which we can simplify to
+$$q = \frac{ \mathbf{x}^\top \mathbf{w}_\mathrm{sup} + 1}{2} \,.$$
+This is the rescaling of the decision function from the interval $[-1,+1]$ to $[0,1]$. Note that in this case $\mathbf{x}^\top \mathbf{w}$ is not necessarily restricted to be within $[-1,+1]$ and so it may occur that $q \notin [0,1]$. In this case there is no assignment of the responsibilities that recovers the supervised solution and thus the unlabeled data forces us to update the decision function $\mathbf{x}^\top \mathbf{w}$ for the semi-supervised classifier.
+
+When $U>1$, for the monotonically decreasing loss functions, it was enough to show that each $q_i \in [0,1]$ can be set individually in order to reconstruct the supervised solution using a responsibility vector $\mathbf{q} \in [0,1]^U$. For the quadratic loss, however, the situation is more complex when multiple unlabeled objects are available. This is because, considering each $q_i$ individually might not allow us to find  $\mathbf{q} \in [0,1]^U$ for which the gradient of the semi-supervised objective at the supervised solution is equal to zero, but there could still be a combined $\mathbf{q} \in [0,1]^U$ for which this does hold, as we discussed for the general case in Theorem~\ref{eq:possible}.
+
+It turns out that if the dimensionality $d \geq U$, such a $\mathbf{q} \in [0,1]^U$ does not exist as long as
+$$\mathbf{X}_\mathrm{u} \mathbf{w}_\mathrm{sup} \notin  [-1,1]^U \, .$$  The proof of this is given in the appendix but is basically a restatement of Theorem~\ref{eq:possible}.  If $d \leq U$, however, then it is also guaranteed that such $\mathbf{q} \in [0,1]^U$ does not exist if
+$$\| \mathbf{X}_\mathrm{u} \mathbf{w}_\mathrm{sup} \|_2 > \sqrt{U} \, .$$
+This last result is essentially different from Theorem \ref{eq:possible} as it shows that even if some of the unlabeled points are within the margin, the semi-supervised learner has to be different from the supervised learner if one or more of the unlabeled points are sufficiently far outside of the margin. The proof is given in the appendix.
+
+\subsection{Absolute Loss}
+The absolute loss is given by
+$$\phi(y \mathbf{x}^\top \mathbf{w})=|1-y \mathbf{x}^\top \mathbf{w}| \, .$$
+and its derivative at all values except $1-y \mathbf{x}^\top \mathbf{w}=0$ then becomes
+$$
+\phi^\prime (y \mathbf{x}^\top \mathbf{w}) =
+\begin{cases}
+-1 ,& \text{if } 1-y \mathbf{x}^\top \mathbf{w}>0\\
++1,& \text{otherwise} \, .
+\end{cases}
+$$
+When $-1 <y \mathbf{x}^\top \mathbf{w}_\mathrm{sup}<1$, we can use Equation~\eqref{eq:solutionq} to find $q=\tfrac{1}{2}$. Otherwise, $\phi'(\mathbf{x}^\top \mathbf{w}_\mathrm{sup}) + \phi'(-\mathbf{x}^\top \mathbf{w}_\mathrm{sup}) = 0$ and there is no $q$ that makes the gradient of the semi-supervised objective in the supervised solution equal to zero. In that case, when we have a single unlabeled object, the semi-supervised solution is an improvement over the supervised solution. For the case of multiple unlabeled objects it may again be possible to find a vector of responsibilities $\mathbf{q} \in [0,1]^U$ that recovers the supervised solution. Again, Theorem~\ref{eq:possible} offers a sufficient condition where the semi-supervised solution must improve over its supervised counterpart.
+
+\section{Discussion}  \label{section:Discussion}
+\subsection{Impossibilities of Semi-supervised Learning}
+As \citet{Seeger2001} and others have argued, for diagnostic methods, where $p(y|\mathbf{x})$ gets modeled directly and not through modeling the joint distribution $p(y,\mathbf{x})$, it seems semi-supervised learning without additional assumptions should be impossible because the parameters of $p(y|\mathbf{x})$ and $p(y,\mathbf{x})$ are a priori independent. Considering why these methods do not allow for safe semi-supervised versions offers a different understanding of why this may or may not be true.  While our results applied to logistic regression corroborates their claim, the quadratic loss shows a counter example. This shows that for non-monotonically decreasing losses, even safe improvements can be possible in the diagnostic setting. One important strength of our analysis is that we also consider the minimization of loss functions that may not induce a correct probability. It is the monotonic decreasingness of the loss, rather than correspondence to a probabilistic model that determines whether safe semi-supervised learning is possible. Moreover, some of the losses for which safe semi-supervised learning is possible are successfully applied in supervised learning in practice and it is therefore interesting that safe semi-supervised versions exist.
+
+It has also been suggested that the possibility of semi-supervised learning depends on the causal direction of $p_{Y|X}$ \cite{Scholkopf2012}. This seems at odds with our result that pessimistic semi-supervised learning is possible for non-monotonically decreasing losses, regardless of the causal structure of the problem. We think this is again due to the our lack of assumptions that the model that is used is a correctly specified probabilistic model, which is required for the results in \cite{Scholkopf2012} to hold.
+
+Our results also might seem to contradict the result by \citet{Sokolovska2008} that, when the supervised model is misspecified, a particular semi-supervised adaptation of logistic regression has an asymptotic variance that is at least as small as supervised logistic regression. In this work, however, we cover the pessimistic setting where a semi-supervised learner needs to outperform the supervised learner for all possible labelings in a finite sample setting. This is a much stricter requirement than the asymptotic result in \citep{Sokolovska2008}. Moreover, we do not require the supervised model to be misspecified. 
+For semi-supervised learning in general, their result is encouraging, while for safe semi-supervised learning it makes sense to consider the results in the pessimistic setting.
+
+The (negative) result presented here is in line with the conclusions of \citet{Ben-David2008}, who show that the worst-case sample complexity of a supervised learner is at most a constant factor higher than that of any semi-supervised approach for a classifier over the real line, and they conjecture this result holds in general. \citet{Darnstadt2013} prove that a slightly altered and more precise formulation of this conjecture holds when hypothesis classes have finite VC-dimension, while they show that it does not hold for more complex hypothesis classes. Whereas these works consider generalization bounds on the error rate in the PAC learning framework, in our work, we considered a more conservative or pessimistic setting of safe semi-supervised learning, while considering performance on a finite sample in terms of the surrogate loss. This leads to an alternative explanation why these (strict) improvements are not possible for some losses, similar to the claim in \citet{Ben-David2008}. It also leads, however, to the contrasting conclusion that for some losses, these improvements are possible (even when the VC dimension is finite), which contradicts the claim of \citet{Ben-David2008} that improvements are not possible unless strong assumptions about the distribution of the labels are made.
+
+\subsection{Safe Semi-supervised Learning}
+What do our results mean for purportedly safe approaches to semi-supervised learning, such as those proposed in \citep{Li2015} and \citep{Kawakita2014a}? The results by \citet{Kawakita2014a} show their proposed procedure is asymptotically safe, similar to the results by \citet{Sokolovska2008}, but under weaker assumptions. In our analysis, we consider performance on the limited set of labeled and unlabeled objects. For monotonically decreasing margin-based losses, it may still be possible to find a procedure that outperforms supervised learning in expectation, but not on a particular set of objects for all its labelings.
+
+The improvement guarantee, in terms of classification accuracy, of the safe semi-supervised SVM by \citet{Li2015} depends on the assumption that the true labeling of the objects is given by one of the low-density separators that their algorithm finds. An advantage of our analysis is that we avoid making such untestable assumptions. The consequence of this is that all possible labelings have to be considered, not just those corresponding to a low-density separator. If their low-density assumptions holds, their method provides one way of making use of this information to guarantee safe improvements. As we have demonstrated, however, in a worst case sense no such guarantees can be given, at least in terms of the semi-supervised objective considered in our work. Without making these untestable assumptions, our results show a safe semi-supervised support vector machine is impossible.
+
+\subsection{Consequences and Opportunities}
+The results of Theorem~\ref{theorem:hardlabels} and Theorem~\ref{theorem:softlabels} show that for many well-known losses that are monotonically decreasing, it is impossible to construct a safe semi-supervised method that is guaranteed to not lead to worse performance than the supervised solution, without making additional assumptions. In this way, these results offer a different perspective on why this type of semi-supervised learning is not possible for some losses, by indicating the monotonic decreasingness property as essential to the proofs.
+
+One consequence of these results is that if we want to construct semi-supervised learners with the type of guarantee studied here, we need more constraints than those given by the pessimistic approach, to reduce the size of the set of possible label assignments that is considered. For unlabeled data to be helpful, we need additional constraints on the semi-supervised solution coming from substantive assumptions, like a low-density or clustering assumption. We need to keep in mind that these strong assumptions, however, might have also helped improve the supervised solution, without considering the unlabeled data, and properly compare any improvements of the semi-supervised learner to a supervised learner that also takes these assumptions into account.
+
+For the non-monotonically decreasing loss functions, safe improvement is possible. One could ascribe this fact to a peculiar property of these losses: they give increasingly higher loss even if the sign of the decision function is correct. The improvements in terms of the loss that we get may therefore not be useful for classification, since they may be in a part of the loss function where the surrogate loss already forms a bad approximation to the $\{0,1\}$-loss. In the supervised case, however, surrogate losses like the quadratic loss generally give decent performance in terms of the error rate. In some sense it is therefore not surprising that its pessimistic semi-supervised counterpart has also shown increased performance as more unlabeled data is added to the training set \citep{Krijthe2017}.
+
+Our analysis takes a rather extreme view of what is required to be safe, where the semi-supervised learner has to outperform the supervised learner on every possible dataset. A less strict notion of safety might consider this improvement to hold in expectation over datasets or labelings, rather than for a particular dataset. On any one particular dataset that a practitioner is faced with, however, the unlabeled data may then cause a decrease in the performance compared to the supervised classifier.
+% 
+% <<responsibilities, echo=FALSE, fig.cap="For a single unlabeled object, the responsibility that causes a zero gradient of the semi-supervised objects at the supervised solution, for different decision values of the unlabeled object.", fig.lp='figure:', fig.height=3,fig.width=6, warning=FALSE, message=FALSE,cache=TRUE >>=
+% objectives <- list(
+%   "Decision Value" = function(o) {o},
+%   "Quadratic" = function(o) {(o+1/2)},
+%   "Logistic" = function(o) {1/(1+exp(-o))},
+%   "Hinge" = function(o) { sapply(o,function(x) {if(x>1) 1 else if(x < -1) 0 else 0.5}) },
+%   "Exponential" = function(o) { exp(o)/(exp(-o)+exp(o)) }
+% )
+% 
+% lapply(objectives, function(f) f(seq(-2,2,length.out=1000))) %>%
+%   as_data_frame %>%
+%   gather(Loss,Value,-`Decision Value`) %>%
+%   ggplot(aes(x=`Decision Value`,y=Value,color=Loss)) +
+%   geom_line(size=1) +
+% 
+%   theme_minimal() +
+%   ylab("q") +
+%   theme(text=element_text(family="Palatino"), axis.title.y=element_text(angle=0),axis.title=element_text(size=10)) +
+%   coord_equal()
+% @
+
+\section{Conclusion}
+We have shown that for the class of convex margin-based losses, the fact whether they are monotonically decreasing or not plays a key role in whether they admit safe semi-supervised procedures. In particular, we have shown that, without making additional assumptions, it is impossible to construct safe semi-supervised procedures for monotonically decreasing losses by deriving what partial assignment of the unlabeled objects leads to the recovery of the supervised classifier from a semi-supervised objective. This subsequently implied that if we choose any semi-supervised procedure that deviates from the supervised solution, there is some labeling of the unlabeled objects (which could be the true labeling) for which it decreases performance. While this means that for many supervised procedures it is impossible to construct a safe semi-supervised learner in this strict sense, some losses do admit such solutions. 
+A less strict guarantee might admit performance improvement by aiming for semi-supervised solutions that in expectation rather than on any particular dataset, outperform their supervised counterparts. 
+
+The stark reality is that if one sticks to strictly safe semi-supervised learning, beside opportunities for some surrogate losses, there are clear limits to the development of such procedures.  It is this reality that we have characterized.
+
+\section*{Acknowledgements}
+
+We thank Alexander Mey for his constructive feedback to an earlier version of this chapter.
+
+\section*{Appendix}
+%\section{Multiple objects for the quadratic loss}
+%\begin{proof}
+Whether it is possible to find some $\mathbf{q}$ for which minimizing the semi-supervised objective gives the supervised solution in case of the quadratic loss comes down to the question whether the system of equations
+\begin{equation} \label{conditionquadratic}
+\mathbf{X}_\mathrm{u} ^\top \mathbf{q} = \frac{1}{2} ( \mathbf{X}_\mathrm{u}^\top \mathbf{1} + \mathbf{X}_\mathrm{u}^\top \mathbf{X}_\mathrm{u} \mathbf{w}_\mathrm{sup} )
+\end{equation}
+has a solution $\mathbf{q} \in [0,1]^U$.
+% Its solutions are given by
+% $$\mathbf{q} = \frac{1}{2} (\mathbf{X}_\mathrm{u}^\top)^+ \mathbf{X}_\mathrm{u}^\top \mathbf{1} + (\mathbf{X}_\mathrm{u}^\top)^+ \mathbf{X}_\mathrm{u}^\top \mathbf{X}_\mathrm{u} \mathbf{w}_\mathrm{sup} + (I - (\mathbf{X}_\mathrm{u}^\top)^+ \mathbf{X}_\mathrm{u}^\top) \mathbf{v}$$
+%$\mathbf{v} \in \mathcal{R}^U$.
+Let $(\mathbf{X}_\mathrm{u}^\top)^+$ denote the Moore-Penrose pseudo-inverse of $\mathbf{X}_\mathrm{u}^\top$. We consider two scenarios: $d \geq U$, the number of unlabeled objects is smaller or equal to the dimensionality of the feature vectors, and $d \leq U$, where we have more unlabeled objects than dimensions.
+
+If $d \geq U$, the pseudo-inverse can be written as $(\mathbf{X}_\mathrm{u} \mathbf{X}_\mathrm{u}^\top)^{-1} \mathbf{X}_\mathrm{u}$ meaning we have a unique solution
+$$
+\mathbf{q} = \frac{1}{2} (\mathbf{1} + \mathbf{X}_\mathrm{u} \mathbf{w}_\mathrm{sup})
+$$
+and so the supervised solution cannot be recovered unless $\mathbf{X}_\mathrm{u} \mathbf{w}_\mathrm{sup} \in [-1,1]^U$.
+
+If $d \leq U$, the pseudo-inverse can be written as $(\mathbf{X}_\mathrm{u}^\top)^+ = \mathbf{X}_\mathrm{u} (\mathbf{X}_\mathrm{u}^\top \mathbf{X}_\mathrm{u})^{-1}$. Rewriting Equation~\eqref{conditionquadratic} in terms of $\mathbf{r} = 2\mathbf{q}-1$, the condition for improvement is that
+$$\mathbf{X}_\mathrm{u} ^\top \mathbf{r} = \mathbf{X}_\mathrm{u}^\top \mathbf{X}_\mathrm{u} \mathbf{w}_\mathrm{sup} $$
+has no solution $\mathbf{r} \in [-1,1]^U$. Solving this using the pseudo-inverse we find the solution $\mathbf{r}^+$ with the smallest norm among all possible solutions:
+$$\mathbf{r}^+ = \mathbf{X}_\mathrm{u} \mathbf{w}_\mathrm{sup} \, .$$
+We therefore have for any solution $\mathbf{r}$ that 
+$$\| \mathbf{r} \|_2 \ge \| \mathbf{X}_\mathrm{u} \mathbf{w}_\mathrm{sup} \|_2$$
+and so if $\| \mathbf{X}_\mathrm{u} \mathbf{w}_\mathrm{sup} \|_2 > \sqrt{U}$, this implies that every solution $\mathbf{r}$ lies outside of the unit cube $[-1,1]^U$ and no proper solution of responsibilities exists.
+%\end{proof}
+
+% Suppose $\| \mathbf{X}_\mathrm{u} \mathbf{w}_\mathrm{sup} \|_2>\sqrt{U}$, we have:
+%$$\| \mathbf{r} \|_2 > \| \mathbf{X}_\mathrm{u} \mathbf{w}_\mathrm{sup} \|_2>\sqrt{U} \, . $$
+%for all solutions $\mathbf{r}$. Since for all $\mathbf{r} \in [-1,1]^U$ we have $\| \mathbf{r}\|_2<\sqrt{U}$ there is no $\mathbf{r} \in %[-1,1]^U$ that is a solution of \eqref{conditionquadratic}.
+
+%
+% So if $\mathbf{H} = \mathbf{X}_\mathrm{u} (\mathbf{X}_\mathrm{u}^\top \mathbf{X}_\mathrm{u})^{-1} \mathbf{X}_\mathrm{u}$ denotes the hat matrix we have
+% $$
+% \mathbf{q} = \frac{1}{2} (\mathbf{H} \mathbf{1} + \mathbf{X}_\mathrm{u} \mathbf{w}_\mathrm{sup}) + (I - \mathbf{H}) \mathbf{v} \, .
+% $$
+% Assuming $\mathbf{X}$ contains an intercept and since $\mathbf{H} \mathbf{X} = \mathbf{X}$
+% $$
+% \mathbf{q} = \frac{1}{2} (\mathbf{1} + \mathbf{X}_\mathrm{u} \mathbf{w}_\mathrm{sup}) + (I - \mathbf{H}) \mathbf{v} \, .
+% $$
+

@@ -1,0 +1,78 @@
+\subsection{Euclidean Projection Estimator for Multivariate ICLS} \label{section:proofmultivariate}
+
+In the multivariate case (where we can include an intercept by including a constant feature in the feature vector $\mathbf{x}$), we will first prove that the solution vector obtained through an adapted version of the implicitly constrained least squares classifier is always as to $\boldsymbol{\beta}_{oracle}$ than the supervised solution when using Euclidean distance as a measure of closeness, where $\boldsymbol{\beta}_{oracle}$ is the solution we would obtain if we would have access to all the labels. We will then use a similar method to prove improvement in terms of squared loss in the next section. 
+
+While the Euclidean distance between a parameter estimate and the optimal parameter estimate is not directly equivalent to the goal of minimizing classification error, this different notion of statistical risk is commonly used in many areas of statistics \cite{Berger1985}. We can use this risk as an alternative way to study in what sense the constrained parameter space may offer an improved estimators over the supervised estimator.
+
+In the adapted ICLS procedure considered, we minimize a slightly different risk function than the squared loss on the labeled objects used in ICLS:
+
+\begin{equation} \label{eq:adaptedICLS}
+\boldsymbol{\hat{\beta}}_{adapted} = \operatorname*{argmin}_{\boldsymbol{\beta} \in \mathcal{C}_{\boldsymbol{\beta}}}  ||\boldsymbol{\beta}-\boldsymbol{\hat{\beta}}_{sup}||
+\end{equation}
+
+This can be interpreted as finding the projection of the supervised solution $\boldsymbol{\hat{\beta}}_{sup}$ onto the constrained space $\mathcal{C}_{\boldsymbol{\beta}}$ defined in Equation \eqref{constrainedregion}, where the projection is the parameter vector in the constrained region with minimum distance to $\boldsymbol{\hat{\beta}}_{sup}$ , measured by Euclidean distance. Note that the difference between this and the regular ICLS procedure is the measure used to calculate this distance. $\boldsymbol{\hat{\beta}}_{adapted}$ uses Euclidean distance, while $\boldsymbol{\hat{\beta}}_{semi}$ uses the loss on the labeled objects to determine the `closest' element in $\mathcal{C}_{\boldsymbol{\beta}}$. The subset of the parameter space onto which we project is still the same. For this adapted ICLS we will prove the following:
+
+\begin{theorem}
+Given a multivariate linear model, $y = \boldsymbol{X} \boldsymbol{{\beta}}$, we have for $\boldsymbol{\hat{\beta}}_{adapted}$ as defined in Equation \eqref{eq:adaptedICLS}, that  
+\begin{equation}
+||\boldsymbol{\hat{\beta}}_{adapted}-\boldsymbol{\hat{\beta}}_{oracle}|| \leq ||\boldsymbol{\hat{\beta}}_{sup}-\boldsymbol{\hat{\beta}}_{oracle}||.
+\end{equation}
+\end{theorem}
+
+Note that if we know $f_X(\boldsymbol{x})$, then $\boldsymbol{\hat{\beta}}_{oracle}=\boldsymbol{{\beta}}^\ast$, the optimal parameter that we would find using infinite labeled training data. To prove the theorem, we first show that the constrained region $\mathcal{C}_{\boldsymbol{\beta}}$ is convex. Note that the constrained space in terms of $\mathbf{y}_u$, $\mathcal{C}_{\mathbf{y}_u}=[0,1]^{\Nunl}$ is convex. Now, for every pair $\boldsymbol{b}_1, \boldsymbol{b}_2 \in \mathcal{C}_{\boldsymbol{\beta}}$, their corresponding labelings $\mathbf{y}_{u_1}, \mathbf{y}_{u_2}$ and all $c \in [0,1]$, we have that: 
+
+\begin{equation}
+\begin{aligned}
+&c \boldsymbol{b}_1 + (1-c) \boldsymbol{b}_2 \\
+=&c \left( {\XeT} {\Xe} \right)^{-1} {\XeT} \begin{bmatrix} \mathbf{y}  \\ \mathbf{y}_{u_1} \end{bmatrix} + (1-c) \left( {\XeT} {\Xe} \right)^{-1} {\XeT} \begin{bmatrix} \mathbf{y}  \\ \mathbf{y}_{u_2} \end{bmatrix} \\
+=&\left( {\XeT} {\Xe} \right)^{-1} {\XeT} \begin{bmatrix} \mathbf{y}  \\ c \mathbf{y}_{u_1} + (1-c) \mathbf{y}_{u_2}  \end{bmatrix} \in \mathcal{C}_{\beta}
+\end{aligned}
+\end{equation}
+Where the conclusion that this estimate is an element of $\mathcal{C}_{\beta}$ follows from the fact that the space of labelings $\mathcal{C}_{y_u}=[0,1]^{\Nunl}$ is convex. 
+
+We now note the following result which can be found in, for instance, Proposition 1.4.1ii in \cite[p.17]{Aubin2000}: For any two elements $a,b$ in a Hilbert space $H$ we have that $||P_C(a)-P_C(b)|| \leq ||a-b||$, where $P_C$ is the best approximation projector onto a closed convex subset $C \subset H$.
+
+Now, take $a$ to be $\boldsymbol{\hat{\beta}}_{sup}$, and $b$ to be $\boldsymbol{\hat{\beta}}_{oracle}$, the parameter vector we would obtain if all the labels were known. Since $\boldsymbol{\hat{\beta}}_{oracle} \in \mathcal{C}_{\beta}$, its projection is $P_{\mathcal{C}_{\beta}}(\boldsymbol{\hat{\beta}}_{oracle})=\boldsymbol{\hat{\beta}}_{oracle}$. The projection of $\boldsymbol{\hat{\beta}}_{sup}$ is $\boldsymbol{\hat{\beta}}_{adapted}$. By the theorem above, we have $||\boldsymbol{\hat{\beta}}_{adapted}-\boldsymbol{\hat{\beta}}_{oracle}|| \leq ||\boldsymbol{\hat{\beta}}_{sup}-\boldsymbol{\hat{\beta}}_{oracle}||$ which proves the result.
+
+Note that in 1D, the Euclidean projection of Equation (\refeq{eq:adaptedICLS}) and the regular ICLS projection are the same, which can also be seen in Figure \ref{fig:constrainedproblem}. In the multivariate case, the two projections are not necessarily the same, meaning a better estimator in terms of Euclidean distance does not necessarily imply a better estimator in terms of squared loss. We can however, get a strong result in terms of the squared loss if we change the distance measure used in the projection.
+
+\subsection{Semi-Supervised Projection Estimator for Multivariate ICLS}
+
+Using a similar procedure as for the Euclidean distance we can show a stronger results: we can define a semi-supervised least squares classifier than will never increase the squared loss, measured on both labeled and unlabeled objects, as compared to the supervised least squares classifier. Consider the following semi-supervised classifier:
+
+\begin{equation} \label{eq:extendedICLS}
+\boldsymbol{\hat{\beta}}_{extended} = \operatorname*{argmin}_{\boldsymbol{\beta} \in \mathcal{C}_{\boldsymbol{\beta}}} \sqrt{(\boldsymbol{\beta}-\boldsymbol{\hat{\beta}}_{sup})^{\top} \XeT \Xe (\boldsymbol{\beta}-\boldsymbol{\hat{\beta}}_{sup})}
+\end{equation}
+This projects the supervised solution onto the constrained space, but, instead of using the Euclidean distance as in Equation \eqref{eq:adaptedICLS}, we use a slightly different distance measure based on the labeled and unlabeled training data. For this procedure we can prove the following:
+\begin{theorem}
+\label{th:robustness}
+Given $\mathbf{X}$, $\mathbf{X}_\mathrm{u}$ and $\mathbf{y}$, $\Xe^\top \Xe$ positive definite and $\boldsymbol{\hat{\beta}}_{sup}$ given by \eqref{olssolution}. For the projected estimator $\boldsymbol{\hat{\beta}}_{extended}$ defined in \eqref{eq:extendedICLS}, the following result holds:
+$$L(\boldsymbol{\hat{\beta}}_{extended},\Xe,\mathbf{y}_\mathrm{e}^{\ast}) \leq L(\boldsymbol{\hat{\beta}}_{sup},\Xe,\mathbf{y}_\mathrm{e}^{\ast}) $$
+\end{theorem}
+Where $\mathbf{y}_\text{e}^\ast$ is the true labeling of all, labeled and unlabeled, objects. In other words: $\boldsymbol{\hat{\beta}}_{extended}$ will \emph{always} be at least as good or better than $\boldsymbol{\hat{\beta}}_{sup}$, in terms of the squared surrogate loss, when evaluated on the true labels of both the labeled and unlabeled objects.
+
+The proof of this result follows from a simple geometric interpretation of our procedure. Consider the following inner product, used in equation \eqref{eq:extendedICLS}:
+\begin{equation}
+\left\langle \mathbf{a}, \mathbf{b} \right\rangle = \mathbf{a}^\top \mathbf{X}_\text{e}^\top \mathbf{X}_\text{e} \mathbf{b}
+\end{equation}
+Let $\mathcal{H}_{\mathbf{X}_\text{e}} = ( \mathbb{R}^d,\left\langle ., . \right\rangle )$ be the inner product space corresponding with this inner product and let $d(a,b)=\sqrt{\left\langle a-b, a-b \right\rangle}$. Due to the similarity of the induced metric to a type of weighted Euclidean distance, this is clearly a Hilbert space, as long as $\XeT \Xe$ is positive definite. As we have shown before, $\Cb$ is convex. By construction $\boldsymbol{\hat{\beta}}_{extended}$ is the closest projection of $\boldsymbol{\hat{\beta}}_{sup}$ onto this convex constrained set $\Cb$ in $\mathcal{H}_{\mathbf{X}_\text{e}}$. By the Hilbert space projection theorem, we now have that 
+\begin{equation}
+\label{eq:projectiontheorem}
+d(\boldsymbol{\hat{\beta}}_{extended},\boldsymbol{\beta}) \leq d(\boldsymbol{\hat{\beta}}_{sup},\boldsymbol{\beta})
+\end{equation}
+for any $\boldsymbol{\beta} \in \Cb$. In particular consider $\boldsymbol{\beta}=\boldsymbol{\hat{\beta}}_{oracle}$, which by construction is within $\Cb$. That is, all possible labelings correspond to an element in $\Cb$, so this also holds for the true labeling $\mathbf{y}_\text{u}^\ast$. Plugging in the closed form solution of $\boldsymbol{\hat{\beta}}_{oracle}$ into \eqref{eq:projectiontheorem} and after some manipulations we find:
+\begin{equation}
+d(\boldsymbol{\hat{\beta}}_{extended},\boldsymbol{\hat{\beta}}_{oracle})^2=L(\boldsymbol{\hat{\beta}}_{extended},\Xe,\mathbf{y}_\text{e}^{\ast})+C \\ \nonumber
+\end{equation}
+and
+\begin{equation}
+d(\boldsymbol{\hat{\beta}}_{sup},\boldsymbol{\hat{\beta}}_{oracle})^2=L(\boldsymbol{\hat{\beta}}_{sup},\Xe,\mathbf{y}_\text{e}^{\ast})+C \nonumber
+\end{equation} 
+where $C$ is a constant that is equal for both cases. From this the result in Theorem \ref{th:robustness} follows directly.
+
+
+
+Looking at the results of the adapted and extended ICLS procedures, we find that the adapted procedure, which makes use of the Euclidean projection onto the constrained space, performs much worse than the ICLS classifier. The extended procedure, on the other hand does offer improvements over the supervised solution on most of the datasets, which its improvements are almost always smaller than those offered by the original ICLS procedure. While it has stronger theoretical guarantees against deterioration in performance than the original ICLS procedure, the extended procedure may be so conservative that it will not give large improvements when unlabeled data can be of use.
+
+% Compared to other approaches in Table \ref{table:cvtable}, the supervised support vector machine works surprisingly well.  Semi-supervised variants of the support vector machine, however, at times degrade the performance, while our approach \emph{never} gives worse performance than the supervised least squares classifier. Clearly, an approach that combines the robustness of our method with the effectiveness of the support vector machine on these datasets  would be beneficial. In principle, our approach can be extended to create an implicitly constrained support vector machine. Unlike the least squares classifier, however, the support vector machine does not have a direct closed form solution. The key challenge will therefore be how to efficiently solve or approximate the resulting procedure. 
+

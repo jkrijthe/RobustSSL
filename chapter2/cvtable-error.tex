@@ -1,0 +1,20 @@
+\begin{table*}
+\caption{Average 10-fold cross-validation error and its standard deviation over 20 repeats. Indicated in $\mathbf{bold}$ is whether a semi-supervised classifier significantly outperform the supervised LDA classifier, as measured using a $t$-test with a $0.05$ significance level. \underline{Underlined} indicates whether a semi-supervised classifier is (significantly) best among the four semi-supervised classifiers considered.} \label{table:cvresults-error}
+\centering
+\begin{tabular}{|l|llllll|}
+\hline
+Dataset & LDA & LDAoracle & MCLDA & EMLDA & SLLDA & ICLDA \\ 
+\hline
+Haberman & $0.37 \pm 0.04$& $0.25 \pm 0.00$& $0.36 \pm 0.03$& $0.47 \pm 0.08$& $0.36 \pm 0.04$& $0.37 \pm 0.04$\\ 
+Ionosphere & $0.21 \pm 0.02$& $0.15 \pm 0.01$& $\mathbf{\underline{0.18 \pm 0.02}} $& $0.57 \pm 0.04$& $0.20 \pm 0.02$& $\mathbf{0.18 \pm 0.01} $\\ 
+Parkinsons & $0.27 \pm 0.03$& $0.15 \pm 0.01$& $\mathbf{\underline{0.22 \pm 0.03}} $& $0.41 \pm 0.05$& $0.26 \pm 0.03$& $\mathbf{0.23 \pm 0.03} $\\ 
+Pima & $0.34 \pm 0.03$& $0.23 \pm 0.00$& $\mathbf{0.32 \pm 0.02} $& $0.37 \pm 0.03$& $0.35 \pm 0.02$& $\mathbf{\underline{0.31 \pm 0.02}} $\\ 
+Sonar & $0.29 \pm 0.02$& $0.26 \pm 0.02$& $0.28 \pm 0.02$& $0.35 \pm 0.02$& $0.29 \pm 0.02$& $0.28 \pm 0.02$\\ 
+SPECT & $0.31 \pm 0.03$& $0.18 \pm 0.01$& $\mathbf{\underline{0.25 \pm 0.02}} $& $0.62 \pm 0.03$& $0.33 \pm 0.03$& $0.30 \pm 0.03$\\ 
+SPECTF & $0.32 \pm 0.03$& $0.24 \pm 0.01$& $\mathbf{\underline{0.28 \pm 0.03}} $& $\mathbf{0.28 \pm 0.05} $& $0.34 \pm 0.03$& $0.33 \pm 0.03$\\ 
+Transfusion & $0.34 \pm 0.03$& $0.23 \pm 0.00$& $\mathbf{\underline{0.32 \pm 0.03}} $& $0.52 \pm 0.09$& $0.37 \pm 0.05$& $0.33 \pm 0.03$\\ 
+WDBC & $0.11 \pm 0.01$& $0.04 \pm 0.00$& $\mathbf{0.09 \pm 0.01} $& $0.38 \pm 0.05$& $\mathbf{0.09 \pm 0.01} $& $\mathbf{\underline{0.08 \pm 0.01}} $\\ 
+BCI & $0.21 \pm 0.01$& $0.16 \pm 0.01$& $\mathbf{\underline{0.20 \pm 0.01}} $& $0.21 \pm 0.02$& $0.21 \pm 0.02$& $\mathbf{0.20 \pm 0.01} $\\ 
+\hline
+\end{tabular}
+\end{table*}

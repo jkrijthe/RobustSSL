@@ -1,0 +1,187 @@
+```{r echo=FALSE}
+library(RSSL)
+library(ggplot2)
+library(magrittr)
+library(ggthemes)
+library(knitr)
+library(dplyr,warn.conflicts=FALSE)
+opts_chunk$set(echo=FALSE)
+
+# ICLS update example
+X <- matrix(c(-1,1),2,1) 
+y <- factor(c("A","B"))
+X_u <-  matrix(c(-1,2), 2, 1) 
+  
+X_e <- cbind(1,rbind(X,X_u))
+
+w_sup <- LeastSquaresClassifier(X,y)@theta
+w_semi <- ICLeastSquaresClassifier(X,y,X_u,projection="semisupervised")@theta
+w_oracle <- LeastSquaresClassifier(rbind(X,X_u),factor(c("A","B","B","A")))@theta
+w_self <- SelfLearning(X,y,X_u,method=LeastSquaresClassifier)@model@theta
+```
+
+```{r fig.width=8,fig.height=3}
+data.frame(X,y=c(0,1)) %>% 
+  ggplot(aes(x=X,y=y)) +
+  geom_point(size=5) +
+  geom_vline(xintercept=-1,linetype=2) +
+  geom_vline(xintercept=2,linetype=2) +
+  scale_x_continuous(limits=c(-3,3)) +
+  geom_smooth(method="lm",se=FALSE,fullrange=TRUE,color="black") +
+  theme_foundation() +
+  theme(rect=element_rect(fill=NA,colour=NA),
+        legend.position="bottom",
+        text=element_text(family="Palatino",size = 16,colour="black"),
+        line=element_line(size=0,colour="black"),
+        axis.title.y=element_text(angle=0),
+        axis.line=element_line(size=0.5,colour = "black",linetype=1),
+        axis.ticks=element_line(size=0.5,color="black"),
+        panel.grid=element_line(size=0.1,colour="grey",linetype = 2),
+        panel.grid.minor=element_line(size=0.0,colour=NA,linetype = 2),
+        strip.text=element_text(size=20),
+        legend.text=element_text(size=16)) +
+  ylab("Class")
+```
+
+```{r warning=FALSE,fig.width=8,fig.height=8}
+
+tries <- as.matrix(expand.grid(seq(-0.25,1,length.out=200),seq(-1,0.25,length.out=200)))
+out1 <- (tries-matrix(1,nrow(tries),1) %*%t(w_sup)) %*% t(X_e) 
+val <- sqrt(rowSums(out1 * out1))
+tries_sup <- cbind(tries,val) %>% as.data.frame
+
+out1 <- (tries-matrix(1,nrow(tries),1) %*%t(w_oracle)) %*% t(X_e) 
+val <- sqrt(rowSums(out1 * out1))
+tries_oracle <- cbind(tries,val) %>% as.data.frame
+
+df_plot <- data.frame(
+  rbind(t(w_sup),t(w_semi),t(w_oracle),t(w_self)),
+  Estimator=c("Supervised","Semi","Oracle","Self"),
+  row.names=NULL)
+df_plot %<>% filter(Estimator!="Self")
+
+vh <- ICLeastSquaresClassifier(X,y,X_u,method="exhaustive")
+
+df_constraint <- vh$ws %>% as.data.frame
+
+tries_sup %>%
+  ggplot(aes(x=Var1,y=Var2,z=val)) +
+  geom_contour(color="black") +
+  geom_contour(color="orange",data=tries_oracle,bins=10) +
+  geom_point(aes(x=V1,y=V2,z=2),color="black",data=df_constraint) +
+  geom_contour(color="orange",data=tries_oracle,bins=10) +
+  geom_point(aes(x=X1,y=X2,color=Estimator),size=5,data=df_plot,inherit.aes=FALSE) +
+  geom_label(aes(x=X1,y=X2,label=Estimator),data=df_plot,inherit.aes=FALSE,hjust=-0.2,family="Palatino",size=6) +
+  theme_foundation() +
+  theme(rect=element_rect(fill=NA,colour=NA),
+        text=element_text(family="Palatino",size = 16,colour="black"),
+        line=element_line(size=0,colour="black"),
+        axis.title.y=element_text(angle=0),
+        axis.line=element_line(size=0.5,colour = "black",linetype=1),
+        axis.ticks=element_line(size=0.5,color="black"),
+        panel.grid=element_line(size=0.1,colour="grey",linetype = 2),
+        panel.grid.minor=element_line(size=0.0,colour=NA,linetype = 2),
+        strip.text=element_text(size=20),
+        legend.text=element_text(size=16),
+        legend.position="none") +
+  ylab("Slope") +
+  xlab("Intercept") +
+  coord_equal()
+```
+
+```{r warning=FALSE,fig.width=8,fig.height=8}
+tries <- as.matrix(expand.grid(seq(-0.5,1.5,length.out=1000),seq(-1.5,1.0,length.out=1000)))
+out1 <- (tries-matrix(1,nrow(tries),1) %*%t(w_sup)) %*% t(X_e) 
+val <- sqrt(rowSums(out1 * out1))
+tries_sup <- cbind(tries,val) %>% as.data.frame
+
+out1 <- (tries-matrix(1,nrow(tries),1) %*%t(w_oracle)) %*% t(X_e) 
+val <- sqrt(rowSums(out1 * out1))
+tries_oracle <- cbind(tries,val) %>% as.data.frame
+
+df_plot <- data.frame(
+  rbind(t(w_sup),t(w_semi),t(w_oracle)),
+  Estimator=factor(c("SUPERVISED","SEMI","ORACLE"),labels=c(" SEMI"," SUPERVISED"," ORACLE"),levels=c("SEMI","SUPERVISED","ORACLE")),
+  row.names=NULL)
+df_plot %<>% filter(Estimator!="Self")
+
+vh <- ICLeastSquaresClassifier(X,y,X_u,method="exhaustive")
+
+df_constraint <- vh$ws %>% as.data.frame
+```
+```{r}
+tries_sup %>%
+  ggplot(aes(x=Var1,y=Var2,z=val)) +
+  geom_contour(color="black",aes(alpha=..level..),breaks=seq(0,1.5,length.out=10)) +
+  scale_alpha_continuous(trans="reverse") +
+  geom_point(aes(x=V1,y=V2,z=2),color="black",data=df_constraint) +
+  geom_contour(color="orange",data=tries_oracle,aes(alpha=..level..),breaks=seq(0,1.5,length.out=10)) +
+  geom_point(aes(x=X1,y=X2,color=Estimator),size=4,data=df_plot,inherit.aes=FALSE) +
+  scale_color_manual(values=c("purple","#4699CC","#EF6A03")) +
+  geom_label(aes(x=X1,y=X2,label=Estimator),data=df_plot,inherit.aes=FALSE,hjust=-0.2,family="Palatino",size=3,label.size=0.1) +
+  theme_foundation() +
+  theme(rect=element_rect(fill=NA,colour=NA),
+        text=element_blank(), #element_text(family="Palatino",size = 12,colour="black"),
+        line=element_line(size=0,colour="black"),
+        axis.title.y=element_text(angle=0),
+        axis.line=element_blank(),#element_line(size=0.0,colour = "black",linetype=1),
+        axis.ticks=element_blank(),#element_line(size=0.0,color="black"),
+        panel.grid=element_blank(),#element_line(size=0.0,colour="grey",linetype = 2),
+        panel.grid.minor=element_blank(),#element_line(size=0.0,colour=NA,linetype = 2),
+        strip.text=element_text(size=20),
+        legend.text=element_text(size=16),
+        legend.position="none") +
+  ylab("Slope") +
+  xlab("Intercept") +
+  coord_equal() +
+  ggsave("out.pdf")
+
+save.image(file="projectionexample.RData")
+```
+
+
+```{r}
+load("cover/projectionexample.RData")
+
+df_hull <- df_constraint[chull(df_constraint$V1,df_constraint$V2),]
+
+
+color1 <- "#336E7C"
+color2 <- "white"
+color3 <- "#244D57"
+color4 <- "#4DA5BA" ##264567
+
+tries_sup %>%
+  ggplot(aes(x=Var1,y=Var2,z=val)) +
+  geom_polygon(aes(x=V1,y=V2),data=df_hull,inherit.aes=FALSE,fill="white",color=NA) +
+  geom_contour(color="white",aes(alpha=..level..),breaks=seq(0,1.5,length.out=10)) +
+  scale_alpha_continuous(trans="reverse") +
+  geom_contour(color=color3,data=tries_oracle,aes(alpha=..level..),breaks=seq(0,1.5,length.out=10)) +
+  geom_point(aes(x=X1,y=X2,color=Estimator),size=4,data=df_plot,inherit.aes=FALSE) +
+  scale_color_manual(values=c(color4,"white",color3))+
+  #geom_label(aes(x=X1,y=X2,label=Estimator),data=df_plot,inherit.aes=FALSE,hjust=-0.2,family="Palatino",fontface="italic",fill=NA,color="white",size=3,label.size=0.1) +
+  
+  theme_foundation() +
+  theme(rect=element_rect(fill=NA,colour=NA),
+        panel.background=element_rect(fill=color1),
+        text=element_blank(), #element_text(family="Palatino",size = 12,colour="black"),
+        line=element_line(size=0,colour="black"),
+        axis.title=element_blank(),
+        axis.line=element_blank(),#element_line(size=0.0,colour = "black",linetype=1),
+        axis.ticks=element_blank(),#element_line(size=0.0,color="black"),
+        panel.grid=element_blank(),#element_line(size=0.0,colour="grey",linetype = 2),
+        panel.grid.minor=element_blank(),#element_line(size=0.0,colour=NA,linetype = 2),
+        plot.margin=unit(c(0,0,0,0),units = "cm"),
+        panel.margin=unit(c(0,0,0,0),units = "cm"),
+        panel.margin.y=unit(0,"cm"),
+        panel.margin.x=unit(0,"cm"),
+        legend.position="none") +
+  ylab("Slope") +
+  xlab("Intercept") +
+  coord_equal() +
+  ggsave("cover/coverpart.pdf",width = 17, height=19,unit="cm")
+
+
+
+
+```

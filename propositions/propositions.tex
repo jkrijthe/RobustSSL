@@ -1,0 +1,154 @@
+% Template: http://www.martijnwieling.nl/thesis
+
+%\documentclass[10pt]{article}
+\documentclass[9pt,b5paper]{book}
+%\usepackage[cm]{fullpage}
+\usepackage[dutch,english]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{txfonts}
+\usepackage{enumitem}
+%\usepackage{a4wide}
+%\usepackage{lucidbry}
+%\usepackage{times}
+%\usepackage[T1]{fontenc}
+%\usepackage[scaled]{helvet}
+\usepackage{scalefnt}
+\usepackage{textcase}
+%\pdfcompresslevel=9
+%\pagestyle{fancyplain}
+
+\usepackage{palatino}
+
+\newlength{\mytextwidth}
+\setlength{\mytextwidth}{26pc}
+\newlength{\mytextheight}
+\setlength{\mytextheight}{50pc}
+\usepackage[papersize={16cm,23cm}, width=\mytextwidth, height=\mytextheight, hmarginratio={1:1},vmarginratio={8:1},bindingoffset=0mm]{geometry}
+
+\RequirePackage[]{fontspec}
+% \RequirePackage[math-style=TeX,vargreek-shape=unicode]{unicode-math}
+% \defaultfontfeatures{Mapping=tex-text}
+\setmainfont
+     [ BoldFont       = texgyrepagella-bold.otf ,
+       ItalicFont     = texgyrepagella-italic.otf ,
+       BoldItalicFont = texgyrepagella-bolditalic.otf,
+       Numbers=OldStyle]
+     {texgyrepagella-regular.otf}
+\setsansfont[BoldFont={* SemiBold}]{Gill Sans}
+
+
+\thispagestyle{empty}
+
+\newcommand{\attribute}[1]{\hspace*{1mm}\hfill{\footnotesize\textit{-- #1}}}%
+\newcommand{\spacedallcaps}[1]{\textssc{\MakeTextUppercase{#1}}}%
+\newcommand{\spacedlowsmallcaps}[1]{\textssc{\MakeTextLowercase{#1}}}%
+
+\newlength{\headerspacing}
+\setlength{\headerspacing}{3mm}
+\makeatletter
+\def\thickhrulefill{\leavevmode \leaders \hrule height 1ex \hfill \kern \z@}
+\makeatother
+\begin{document}
+
+
+
+
+\begin{center}
+\vspace{100pt}
+%        \DeclareRobustCommand{\spacedallcaps}[1]{\textssc{\MakeTextUppercase{#1}}}%
+
+ \hrule height 1ex \hfill
+\vspace{5pt}
+\hrule
+\vspace{10pt}
+
+\textsc{Stellingen}\\
+\vspace{\headerspacing}
+behorend bij het proefschrift getiteld\\
+\vspace{\headerspacing}
+\textit{Robust Semi-supervised Learning}\\
+\vspace{1mm}
+door\\
+\vspace{1mm}
+\textit{Jesse Hendrik Krijthe}\\
+\end{center}
+\hrule
+\vspace*{0.1cm}
+\begin{enumerate}[leftmargin=1.15em]
+
+% Zo spoedig mogelijk na de goedkeuring bedoeld in artikel 10, legt de promovendus aan de promotor ten minste vier stellingen voor die betrekking hebben op het onderwerp van het proefschrift, ten minste vier wetenschappelijke stellingen die betrekking hebben op het vakgebied van het onderwerp van het proefschrift en ten hoogste vier stellingen over een of meer onderwerpen ter keuze van de
+% promovendus.
+
+
+% Proefschrift (min 4)
+
+\item Semi-supervised learning without additional assumptions, beyond those inherent in the supervised classifier, is possible. \\
+\attribute{This thesis, Chapters 1 \& 2}
+
+\item One can guarantee performance improvement of some semi-supervised learners over their supervised counterparts. \\
+\attribute{This thesis, Chapters 1 \& 3}
+
+\item Truly safe semi-supervised learning is impossible for a large class of commonly used classifiers.\\
+\attribute{This thesis, Chapter 5}
+
+\item Considering a classification method's performance in terms of the actual loss it minimizes at train time gives useful insights. \\ 
+\attribute{This thesis, Chapter 4}
+
+% \item While the least squares classifier has interesting similarities to otber classifiers and is ideally suited for studying semi-supervised learning, the differences pose a challenge to the generalizability of results to other classifiers.\\
+% \attribute{This thesis, Chapters 1-3, 5-7}
+% 
+% \item Reproducibility is important for progress in pattern recognition research, we should remember it is merely in the service of replicability.\\
+% \attribute{This thesis, Chapter 8}
+% 
+% \item Projections of estimators, and its minimax counterpart, offer insightful ways to think about classifiers beyond the supervised setting. \\ 
+% \attribute{This thesis, Chapter 3}
+
+% Vakgebied (min 4)
+\item There is a limit to the usefulness of asymptotic results.
+
+\item Rather than hoping for practice to better correspond to current statistical methods, we need new methods that better match the adaptive way statistics is used in practice.
+
+%\item To improve the validity of published statistical claims, methodologists need to come up with procedures that better match the adaptive way statistical methods are used in practice, rather than attempt to have practice better correspond to current theory.
+
+\item The focus in statistical practice on hypothesis testing is feeding society's appetite to clear cut answers in a reality where none are available.
+
+\item Data is uninteresting without a model, while a model can be interesting without data.
+
+
+% \item The only true goals of interest in statistics are prediction and causal inference.
+
+% \item The surrogate loss currently used for evaluating machine learning papers (`performance` on benchmark datasets) is not calibrated for the goal of better understanding methods.
+
+% Vrije keuze (max 4)
+
+% \item Instead of trying to be a `data scientist', one should strive to be a `model scientist', in both senses of the word.
+% 
+
+% 
+% \item No study should be published where the data is not made available, except when insurmountable privacy issues arise.
+
+\item Publishers have become a dispensible part of scientific communication.
+
+\item Our unwillingness or inability to define our actual goals, combined with a need for certainty, lead to surrogate measures (e.g. GDP, H-index, wealth, `likes' on social media) that are actively harmful.
+
+
+%\item It is each person's responsibility to actively cultivate an appreciation for uncertainty.
+% \item It is each person's responsibility to actively cultivate the possibility they might be wrong.
+
+%\vspace*{4cm}
+%\item The incentive structure of academia is diametrically opposed to the duties of the applied statistician.
+%\item In machine learning, novelty has become too important compared to the equally important goal of synthesis.
+%\item Software implementations have a larger impact on statistical, machine learning \& pattern recognition practice than theoretical results.
+%\item The term `state-of-the-art', while properly named, has become too prevalent in descriptions of science.
+%\item There is no such thing as philosophy-free statistics.\\ %; there is only statistics that has been conducted without any consideration of its underlying philosophical assumptions. \\ 
+%\attribute{Adapted from Daniel Dennett}
+%\item ``When you are a Bear of Very Little Brain, and you Think of Things, you find sometimes that a Thing which seemed very Thingish inside you is quite different when it gets out into the open and has other people looking at it.'' \\ \attribute{A.A. Milne}
+
+%\item ``What is only complex is mistaken (a not unusual error) for what is profound'' \\ \attribute{Edgar Allan Poe}
+
+%\item ``Statistics is the science of defaults, and an important part of statistical theory at its best is the study of how defaults work on a range of problems.''\\ 
+%\attribute{Andrew Gelman}
+
+\end{enumerate}
+
+\end{document}

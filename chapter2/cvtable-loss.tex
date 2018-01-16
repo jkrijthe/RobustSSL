@@ -1,0 +1,20 @@
+\begin{table*}
+\caption{Average 10-fold cross-validation negative log-likelihood (loss) and its standard deviation over 20 repeats. Indicated in $\mathbf{bold}$ is whether a semi-supervised classifier significantly outperform the supervised LDA classifier, as measured using a $t$-test with a $0.05$ significance level. \underline{Underlined} indicates whether a semi-supervised classifier is (significantly) best among the four semi-supervised classifiers considered.} \label{table:cvresults-loss}
+\centering
+\begin{tabular}{|l|llllll|}
+\hline
+Dataset & LDA & LDAoracle & MCLDA & EMLDA & SLLDA & ICLDA \\ 
+\hline
+Haberman & $15.88 \pm 4.37$& $10.37 \pm 0.02$& $\mathbf{11.66 \pm 2.45} $& $\mathbf{12.02 \pm 0.35} $& $\mathbf{12.08 \pm 0.20} $& $\mathbf{\underline{10.89 \pm 0.16}} $\\ 
+Ionosphere & $199.58 \pm 29.66$& $21.38 \pm 0.34$& $\mathbf{25.93 \pm 1.44} $& $\mathbf{22.55 \pm 0.40} $& $\mathbf{22.80 \pm 0.40} $& $\mathbf{\underline{22.22 \pm 0.33}} $\\ 
+Parkinsons & $-40.76 \pm 11.11$& $-71.87 \pm 0.32$& $\mathbf{-71.05 \pm 0.40} $& $\mathbf{-71.12 \pm 0.40} $& $\mathbf{-71.03 \pm 0.38} $& $\mathbf{\underline{-71.44 \pm 0.31}} $\\ 
+Pima & $41.98 \pm 2.99$& $29.88 \pm 0.02$& $\mathbf{31.74 \pm 0.99} $& $\mathbf{31.95 \pm 0.35} $& $\mathbf{32.07 \pm 0.36} $& $\mathbf{\underline{30.50 \pm 0.13}} $\\ 
+Sonar & $-59.86 \pm 1.08$& $-83.05 \pm 0.59$& $\mathbf{-82.23 \pm 0.57} $& $\mathbf{-82.85 \pm 0.55} $& $\mathbf{-82.20 \pm 0.60} $& $\mathbf{-82.58 \pm 0.57} $\\ 
+SPECT & $27.65 \pm 1.89$& $10.74 \pm 0.09$& $\mathbf{11.30 \pm 0.17} $& $\mathbf{12.63 \pm 0.18} $& $\mathbf{11.84 \pm 0.20} $& $\mathbf{\underline{11.19 \pm 0.13}} $\\ 
+SPECTF & $178.42 \pm 2.48$& $148.13 \pm 0.68$& $\mathbf{148.78 \pm 0.69} $& $\mathbf{148.44 \pm 0.69} $& $\mathbf{149.18 \pm 0.72} $& $\mathbf{148.67 \pm 0.71} $\\ 
+Transfusion & $17.00 \pm 2.61$& $11.48 \pm 0.02$& $\mathbf{12.23 \pm 0.54} $& $16.27 \pm 0.53$& $\mathbf{14.21 \pm 0.47} $& $\mathbf{\underline{11.88 \pm 0.17}} $\\ 
+WDBC & $33.15 \pm 15.14$& $-28.06 \pm 1.29$& $\mathbf{-26.73 \pm 1.23} $& $\mathbf{-26.67 \pm 1.32} $& $\mathbf{-27.78 \pm 1.28} $& $\mathbf{\underline{-27.86 \pm 1.28}} $\\ 
+BCI & $6.99 \pm 1.04$& $-21.04 \pm 0.41$& $\mathbf{-20.38 \pm 0.40} $& $\mathbf{-20.39 \pm 0.46} $& $\mathbf{-20.44 \pm 0.45} $& $\mathbf{\underline{-20.74 \pm 0.41}} $\\ 
+\hline
+\end{tabular}
+\end{table*}

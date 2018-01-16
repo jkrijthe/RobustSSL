@@ -1,0 +1,394 @@
+% Layout ideas:
+
+\documentclass[twoside]{memoir}
+
+
+
+% Set paper size
+\setstocksize{24cm}{17cm}
+\settrimmedsize{\stockheight}{\stockwidth}{*}
+\setulmarginsandblock{2.5cm}{2.25cm}{*} %\setulmarginsandblock{3.5cm}{2cm}{*}
+\setlrmarginsandblock{2.25cm}{2cm}{*} %\setlrmarginsandblock{2cm}{3cm}{*}
+\checkandfixthelayout
+
+\usepackage{xcolor}
+\definecolor{ThesisGreen}{HTML}{336E7C}
+\definecolor{ThesisLight}{HTML}{4DA5BA}
+\definecolor{ThesisDark}{HTML}{244D57}
+\usepackage[nopagecolor={none},pagecolor={none}]{pagecolor}
+\usepackage{afterpage}
+\usepackage{csquotes}
+\usepackage[dutch,british]{babel}
+
+\usepackage[pdfstartpage=3]{hyperref}
+\newsubfloat{figure}
+%\usepackage{subfig}
+\usepackage{longtable}
+%\usepackage[b5paper,top=25mm,bottom=25mm]{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{pdfpages}
+\usepackage{tikz}
+\usetikzlibrary{fit,positioning}
+%\newsubfloat[caption=false,position=bottom]{figure}
+% \RequirePackage[caption=false,position=bottom]{subfig}
+\let\subfloat\subbottom
+
+\newcommand{\inlinecode}{\texttt}
+
+
+
+
+
+\renewcommand*{\memUChead}[1]{\textsc{\MakeTextLowercase{#1}}}
+
+\usepackage[natbib=true, backend=biber, defernums=true, style=authoryear,citestyle=authoryear,giveninits=true,dashed=true,maxbibnames=99,sorting=nyt,maxcitenames=2,minnames=1,uniquename=false,url=false,isbn=false]{biblatex}
+\addbibresource{library.bib}
+\addbibresource{chapter6.bib}
+\renewcommand{\cite}{\citep}
+\renewcommand*{\bibfont}{\footnotesize}  
+  
+\title{Robust Semi-supervised Learning}
+\author{Jesse Hendrik Krijthe}
+
+\renewcommand*\contentsname{Table of Contents}
+
+\tightlists
+
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\newcommand{\Xe}{\mathbf{X}_\mathrm{e}  }
+\newcommand{\XeT}{\mathbf{X}_\mathrm{e}^T}
+
+\newcommand{\ye}{\begin{bmatrix} \mathbf{y}  \\ \mathbf{y}_\textrm{u} \end{bmatrix}}
+
+\let\MyG\G
+\let\G\relax
+\newcommand{\G}{\left(\Xe^T \Xe \right)^{-1}}
+\newcommand{\missidentity}{\begin{bmatrix} 0 & 0 \\ 0 & \textbf{I }\end{bmatrix}}
+\newcommand{\Greg}{\left(\Xe^T \Xe + \lambda \missidentity \right)^{-1}}
+\newcommand{\Cb}{\mathcal{C}_{\beta}}
+
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\newcommand{\featdim}{d}
+\newcommand{\Nunl}{U}
+\newcommand{\Nlab}{L}
+\newcommand{\X}{\mathbf{X}}
+\renewcommand{\vec}{\mathbf}
+
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}{Lemma}
+\newtheorem{definition}{Definition}
+\newtheorem{remark}{Remark}
+
+\hyphenation{moment-con-straint}
+\hyphenation{express-ion-based}
+
+% Footnotes
+\let\oldfootnoterule\footnoterule
+\renewcommand*{\footnoterule}{}
+
+\setfootins{\bigskipamount}{\bigskipamount}
+
+\newcommand\blfootnote[1]{%
+  \begingroup
+  \renewcommand\thefootnote{}\footnote{\itshape#1}%
+  \addtocounter{footnote}{-1}%
+  \endgroup
+}
+
+% \usepackage{fancyhdr}
+% \pagestyle{fancy}
+% \fancyhead{}
+% \fancyhead[RO,LE]{\thepage}
+% \fancyfoot{}
+
+% \setlength{\unitlength}{18mm}
+% \newcommand{\blob}{\rule[-.2\unitlength]{2\unitlength}{.5\unitlength}}
+% \newcommand\rblob{\thepage
+% \begin{picture}(0,0)
+% \put(1,-\value{section}){\blob}
+% \end{picture}}
+% \newcommand\lblob{%
+% \begin{picture}(0,0)
+% \put(-3,-\value{section}){\blob}
+% \end{picture}
+% 
+% \fancyhead[RE]{\rightmark}
+% \fancyhead[RO]{\rblob}
+% \fancyhead[LE]{\lblob}
+% \fancyhead[LO]{{\leftmark}
+\makeatletter
+\def\mysequence#1{\expandafter\@mysequence\csname c@#1\endcsname}
+\def\@mysequence#1{%
+  \ifcase#1\or One\or Two\or Three\or Four\or Five\or Six\or Seven\or Eight\or Nine\or Ten\or Eleven\or Twelve\or Thirteen\or Fourteen\or Fifteen\or Sixteen\or Seventeen\or Eighteen\else\@ctrerr\fi}
+\makeatother
+
+\renewcommand*\rmdefault{ppl}
+%\renewcommand*\sfdefault{phv}
+\linespread{1.15}
+
+\usepackage{mathpazo}
+\usepackage{microtype}
+
+
+\RequirePackage[]{fontspec}
+% \RequirePackage[math-style=TeX,vargreek-shape=unicode]{unicode-math}
+% \defaultfontfeatures{Mapping=tex-text}
+\setmainfont
+     [ BoldFont       = texgyrepagella-bold.otf ,
+       ItalicFont     = texgyrepagella-italic.otf ,
+       BoldItalicFont = texgyrepagella-bolditalic.otf,
+       Numbers=OldStyle]
+     {texgyrepagella-regular.otf}
+\setsansfont[BoldFont={* SemiBold}]{Gill Sans}
+
+% Figures
+\captionnamefont{\bfseries \sffamily}
+\captiontitlefont{\sffamily}
+\captiondelim{ | }
+\hangcaption
+
+% Titles
+\renewcommand{\thepart}{\mysequence{part}}
+
+
+
+\usepackage{titlesec}
+\titleformat{\chapter}[display]
+  {\rmfamily\LARGE}
+  {\textsf{\MakeUppercase{Chapter \mysequence{chapter}}}}{10pt}{\Huge\itshape}
+\titleformat{name=\chapter,numberless}[display]
+  {\rmfamily\Large\itshape}
+  {}{20pt}{\Huge}
+\titleformat{\section}
+  {\rmfamily\Large\itshape}
+  {\thesection}{1em}{\Large}
+\titleformat{\subsection}
+  {\rmfamily\itshape\bfseries\large}
+  {\thesubsection}{1em}{\large}
+% \titleformat{\part}[display]
+%   {\sffamily\HUGE}
+%   {\LARGE\itshape{\textrm{Part \mysequence{part}}}}{0.5em}{}
+  
+%\usepackage{tocloft}
+% Table of Contents formatting
+\renewcommand{\tocheadstart}{}
+\maxtocdepth{chapter}
+\renewcommand{\printtoctitle}[1]{\hfill\rmfamily\HUGE\itshape #1}
+\renewcommand{\cftchapterfont}{\rmfamily\itshape}
+\renewcommand{\cftsectionfont}{\rmfamily}
+\renewcommand{\cftpartfont}{\sffamily Part\space}
+\cftpagenumbersoff{part}
+\renewcommand*{\cftchapterpagefont}{\itshape}
+\setlength{\cftbeforechapterskip}{0.3em}
+\setlength{\cftbeforepartskip}{1.5em}
+
+
+\usepackage[capitalise,nameinlink]{cleveref}
+\crefname{section}{Sect.}{Sect.}
+\Crefname{section}{Section}{Sections}
+\crefname{figure}{Fig.}{Fig.}
+\Crefname{figure}{Figure}{Figures}
+
+
+% Abstract
+\renewcommand{\abstracttextfont}{\normalfont\small\sffamily}
+\addto{\captionsbritish}{\renewcommand{\abstractname}{}}
+\addto{\captionsenglish}{\renewcommand{\abstractname}{}}
+
+\newcommand{\mypartpic}{cover/part2.pdf}
+\newcommand\PartPic{
+\checkoddpage
+\ifoddpage
+\put(\LenToUnit{-1mm},\LenToUnit{0mm}){
+\includegraphics{\mypartpic}
+}
+\fi
+}
+
+\aliaspagestyle{part}{empty}
+
+\begin{document}
+<<settings, echo=FALSE>>=
+knit_hooks$set(document = function(x) {
+  sub('\\usepackage[]{color}','\\usepackage{xcolor}', x, fixed = TRUE)
+})
+options(tikzDefaultEngine='xetex')
+opts_chunk$set(dev='cairo_pdf')
+knit_theme$set("print")
+@
+
+<<theme-thesis,echo=FALSE,warning=FALSE,message=FALSE>>=
+library(ggthemes)
+library(extrafont)
+loadfonts()
+theme_thesis <- function(base_size=12) {
+  theme_classic() +
+  theme(legend.position="bottom",
+    text=element_text(family="Palatino",face = "italic",colour="black"),
+    title=element_text(family="Gill Sans",face = "plain"),
+    plot.title=element_text(hjust = 0.5),
+    strip.background=element_rect(size = 0,color=NA,fill=NA),
+    axis.title.y=element_text(size=rel(1)),
+    axis.title.x=element_text(size=rel(1)),
+    axis.text=element_text(size=rel(0.8),face="plain"),
+    axis.line.x=element_line(size=0.5 ,color="black",linetype=1),
+    axis.line.y=element_line(size=0.5 ,color="black",linetype=1),
+    legend.text=element_text(size=rel(1)),
+    panel.grid.major=element_line(colour = "darkgrey",size = 0.2,linetype = "dashed"),
+    panel.grid.major.x=element_line(colour = "darkgrey",size = 0.2,linetype = "dashed"),
+    panel.grid.minor.x=element_blank(),
+    panel.grid.major.y=element_line(colour = "darkgrey",size = 0.2,linetype = "dashed"),
+    panel.grid.minor.y=element_blank(),
+    strip.text=element_text(size=rel(1))
+  )
+}
+scale_color_thesis <- scale_color_tableau
+scale_fill_thesis <- scale_fill_tableau
+
+opts_chunk$set(dev='cairo_pdf')
+@
+
+% Include cover
+%\includepdf[pages={1}]{cover/projection2.pdf}
+\cleartorecto
+\setcounter{page}{1}
+
+\frontmatter*
+% Starting pages
+\include{rest/official-matter}
+% \newpage\null\thispagestyle{empty}\newpage
+\thispagestyle{empty}
+\vspace*{5cm}
+\epigraphposition{center}
+\epigraphfontsize{\Large}
+\setlength{\epigraphwidth}{0.8\textwidth}
+\setlength{\epigraphrule}{0pt}
+\epigraph{\textit{The only way of discovering the limits of the possible is to venture a little way past them into the impossible.}}{\textsc{\\Arthur C. Clarke}\vspace{0.2cm}\\\footnotesize{``Hazards of Prophecy'' in \\Profiles of the Future (1962)}} \nocite{Clarke1962}
+\cleardoublepage
+
+\tableofcontents*
+
+
+% Contents
+<<introduction, child='introduction/introduction.Rnw', cache=TRUE>>=
+@
+\afterpage{\newpagecolor{ThesisLight}}
+\mainmatter*
+\nopagebreak
+% standard part pages should be suppressed, custom part page used instead
+\renewcommand{\printpartname}{}
+\renewcommand{\printpartnum}{}
+\renewcommand{\printparttitle}{\phantom}
+
+% Custom part page for Part I
+% \cleartoverso
+% \null
+% \thispagestyle{empty}
+\afterpage{\restorepagecolor}
+% \newpage
+\renewcommand{\mypartpic}{cover/part1.pdf}
+\AddToShipoutPicture{\PartPic}
+\part{CONSTRAINTS \& PROJECTIONS}
+\afterpage{\restorepagecolor}
+\ClearShipoutPicture
+
+
+\chapter[Implicitly Constrained Semi-supervised Least Squares Classification]{Implicitly Constrained Semi-supervised\\Least Squares Classification}
+\chaptermark{Implicitly Constrained Least Squares}
+\label{chapter:icls}
+\blfootnote{This chapter appeared as: Krijthe, J.H. \& Loog, M., 2017. Robust Semi-supervised Least Squares Classification by Implicit Constraints. Pattern Recognition, 63, pp.115–126. An earlier, shorter, version of this work appeared as: Krijthe, J. H., \& Loog, M. (2015). Implicitly Constrained Semi-Supervised Least Squares Classification. In E. Fromont, T. De Bie, \& M. van Leeuwen (Eds.), Advances in Intelligent Data Analysis XIV. Lecture Notes in Computer Science, vol 9385. (pp. 158–169).}
+<<chapter1, child='chapter1/chapter1.Rnw', cache=TRUE>>=
+@
+
+\chapter[Implicitly Constrained Semi-supervised Linear Discriminant Analysis]{Implicitly Constrained Semi-supervised\\Linear Discriminant Analysis}
+\chaptermark{Implicitly Constrained LDA}
+\label{chapter:iclda}
+\blfootnote{This chapter appeared as: Krijthe, J.H. \& Loog, M., 2014. Implicitly Constrained Semi-Supervised Linear Discriminant Analysis. In Proceedings of the 22nd International Conference on Pattern Recognition (pp. 3762–3767).}
+<<chapter2, child='chapter2/chapter2.Rnw', cache=TRUE>>=
+  @
+  
+  \chapter[Projected Estimators for Robust Semi-supervised Classification]{Projected Estimators for\\Robust Semi-supervised Classification}
+\chaptermark{Projected Estimators}
+\label{chapter:projection}
+\blfootnote{This is chapter appeared as: Krijthe, J. H., \& Loog, M., 2017. Projected estimators for robust semi-supervised classification. Machine Learning, 106(7), pp. 993–1008. Springer}
+<<chapter3, child='chapter3/chapter3.Rnw', cache=TRUE>>=
+@
+\cleartoverso
+\null
+\thispagestyle{empty}
+\newpagecolor{ThesisDark}\afterpage{\restorepagecolor}
+\newpage
+\renewcommand{\mypartpic}{cover/part2.pdf}
+\AddToShipoutPicture{\PartPic}
+\part{SURROGATE LOSSES}
+\ClearShipoutPicture
+
+\chapter[On Measuring and Quantifying Performance]{On Measuring and Quantifying Performance: Error Rates, Surrogate Loss,\\and an Example in SSL}
+\chaptermark{Measuring and Quantifying Performance}
+\label{chapter:quantifying}
+\blfootnote{This chapter appeared as: Loog, M., Krijthe, J.H. \& Jensen, A.C., (2016). On Measuring and Quantifying Performance: Error Rates, Surrogate Loss, and an Example in SSL. In C. H. Chen, ed. Handbook of Pattern Recognition and Computer Vision. World Scientific.}
+<<chapter5, child='chapter5/chapter5.Rnw', cache=TRUE>>=
+@
+
+\chapter[The Pessimistic Limits of Margin-based Losses in Semi-supervised Learning]{The Pessimistic Limits of\\Margin-based Losses\\in Semi-supervised Learning}
+\chaptermark{Margin-based Losses in SSL}
+\label{chapter:marginbased}
+\blfootnote{The work in this chapter has been submitted and was under review at the time of printing.}
+<<chapter6, child='chapter6/chapter6.Rnw', cache=TRUE>>=
+@
+
+\chapter[Optimistic Semi-supervised Least Squares Classification]{Optimistic Semi-supervised\\Least Squares Classification}
+\chaptermark{Optimistic Least Squares}
+\label{chapter:optimistic}
+\blfootnote{This chapter appeared as: Krijthe, J. H., \& Loog, M. 2016. Optimistic Semi-supervised Least Squares Classification. In Proceedings of the 23rd International Conference on Pattern Recognition (pp. 1677–1682).}
+<<chapter7, child='chapter7/chapter7.Rnw', cache=TRUE>>=
+@
+
+\chapter[The Peaking Phenomenon in Semi-supervised Learning]{The Peaking Phenomenon\\in Semi-supervised Learning}
+\chaptermark{Peaking in SSL}
+\label{chapter:peaking}
+\blfootnote{This chapter appeared as: Krijthe, J. H., \& Loog, M. 2016. The Peaking Phenomenon in Semi-supervised Learning. In A. Robles-Kelly, M. Loog, B. Biggio, F. Escolano, \& R. Wilson (Eds.), Structural, Syntactic, and Statistical Pattern Recognition. S+SSPR 2016. Lecture Notes in Computer Science, vol 10029. (pp. 299–309). Springer}
+<<chapter8, child='chapter8/chapter8.Rnw', cache=TRUE>>=
+@
+\cleartoverso
+\null
+\thispagestyle{empty}
+\newpagecolor{ThesisGreen}\afterpage{\restorepagecolor}
+\newpage
+\renewcommand{\mypartpic}{cover/part3.pdf}
+\AddToShipoutPicture{\PartPic}
+\part{REPRODUCIBILITY}
+\ClearShipoutPicture
+
+\chapter[Reproducible Pattern Recognition Research]{Reproducible Pattern Recognition Research:\\The Case of Optimistic SSL}
+\chaptermark{Reproducible Pattern Recognition Research}
+\label{chapter:reproducing}
+\blfootnote{This chapter appeared as: Krijthe, J. H., \& Loog, M. 2016. Reproducible Pattern Recognition Research: The Case of Optimistic SSL. In B. Kerautret, M. Colom, \& P. Monasse (Eds.), Reproducible Research in Pattern Recognition. RRPR 2016. Lecture Notes in Computer Science, vol 10214. (pp. 48–59). Springer}
+
+<<chapter9, child='chapter7/chapter9.Rnw', cache=TRUE>>=
+@
+
+\chapter{Semi-supervised Learning in R}
+\chaptermark{Semi-supervised Learning in R}
+\label{chapter:rssl}
+\blfootnote{This chapter appeared as: Krijthe, J. H. 2016. RSSL: R package for Semi-supervised Learning. In B. Kerautret, M. Colom, \& P. Monasse (Eds.), Reproducible Research in Pattern Recognition. RRPR 2016. Lecture Notes in Computer Science, vol 10214. (pp. 104–115). Springer}
+<<chapter10, child='chapter10/chapter10.Rnw', cache=TRUE>>=
+@
+
+\backmatter
+
+\addtocontents{toc}{\vspace{\normalbaselineskip}}
+<<discussion, child='introduction/discussion.Rnw', cache=TRUE>>=
+@
+
+\scriptsize{\printbibliography[heading=bibintoc,title={References}]}
+
+\normalsize
+\include{rest/summary}
+\include{rest/acknowledgements}
+\include{rest/about-the-author}
+\end{document}

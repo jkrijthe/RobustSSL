@@ -1,0 +1,288 @@
+<<set-parent, echo=FALSE, cache=FALSE>>=
+set_parent('../thesis.Rnw')
+@
+
+\begin{abstract}
+In various approaches to learning, notably in domain adaptation, active learning, learning under covariate shift, semi-supervised learning, learning with concept drift, and the like, one often wants to compare a baseline classifier to one or more advanced (or at least different) strategies.  In this chapter, we basically argue that if such classifiers, in their respective training phases, optimize a so-called surrogate loss, then it may also be valuable to compare the behaviour of this loss on the test set, next to the regular classification error rate. It can provide us with an additional view on the classifiers' relative performances that error rates cannot capture.  As an example, limited but convincing empirical results demonstrate that we may be able to find semi-supervised learning strategies that can guarantee performance improvements with increasing numbers of unlabeled data in terms of log-likelihood.  In contrast, the latter may be impossible to guarantee for the classification error rate.
+\end{abstract}
+
+
+\section{Introduction}
+The aim of semi-supervised learning is to improve supervised learners by exploiting potentially large amounts of, typically easy to obtain, unlabeled data \cite{Chapelle2006}.  Up to now, however, semi-supervised learners have reported mixed results when it comes to such improvements: it is not always the case that semi-supervision results in lower expected error rates.  On the contrary, severely deteriorated performances have been observed in empirical studies and theory shows that improvement guarantees can often only be provided under rather stringent conditions \cite{Castelli1995,Ben-David2008,Lafferty2007,Singh2008}.
+
+Now, the principal suggestion put forward in this chapter is that, when dealing with semi-supervised learning, one may not only want to study the (expected) error rates these classifiers produce, but also to measure the classifiers' performances by means of the intrinsic loss they may be optimizing in the first place.  That is, for classification routines that optimize a so-called surrogate loss at training time---which is what many machine learning and Bayesian decision theoretic approaches do \cite{scholkopf2002learning,robert2001bayesian}, we propose to also investigate how this loss behaves on the test set as this can provide us with an alternative view on the classifier's behaviour that a mere error rate cannot capture.
+
+In fact, though the main example is concerned with semi-supervision, we would like to argue that in other learning scenarios, similar considerations might be beneficial.  For instance in active learning \cite{settles2010active}, where rather than sampling randomly from ones input data to provide these instances with labels, one aims to do the sampling in a systematic way, trying to keep labeling cost as low as one can or, similarly, to learn from as few labeled examples as possible.  Also here it may (or, we believe, it should) be of interest to not only compare the error rates that different approaches (e.g. random sampling and uncertainty sampling \cite{lewis1994sequential}) achieve, but also how the surrogate losses compare for these techniques when we are using the same underlying classifiers.  Similar remarks can be made for other learning scenarios like domain adaptation, transfer learning, and learning under data shift or data drift \cite{margolis2011literature,torrey2009transfer,Quinonero-Candela2009,vzliobaite2010learning}.  In these last settings, one may typically want to compare, say, a classifier trained in a source domain with one that exploits additional knowledge on a target domain.
+
+
+\subsection{Surrogate Loss vs. Error Rates}
+
+The simple idea underlying the suggestion we make is that, unless we make particular assumptions, generally, we cannot expect to minimize the error rate if we are, in fact, optimizing a surrogate loss.  This surrogate loss is, to a large extent, chosen for computational reasons, but of course the hope is that, with increasing training set size, minimizing it will not only lead to improvements with respect to this surrogate loss but also with respect to the expected error rate.  This cannot be guaranteed in any strict way however.  To start with, the classifier's error rate itself can already act rather unpredictably.  A general result by Devroye demonstrates, for instance, that for any classifier there exists a classification problem such that the error rate converges at an arbitrarily slow rate to the Bayes error \cite{Devroye1982}.  If the classifier is not a universal approximator \cite{devroye1996probabilistic,steinwart05}, there is not even a guarantee that the Bayes error will ever be reached.  Worse even, in the case that we are dealing with such model misspecification, error rates might even go up with increasing numbers of training samples \cite{Loog2012}. This leads to the rather counterintuitive result that, in some cases, expected error rates might actually be improved by throwing arbitrary samples out of the training set.  The aforementioned considerations lead us, all in all, to speculate that any kind of generally valid (i.e., not depending on strong assumptions) expected performance guarantees, if at all possible in semi-supervised learning or any of the other aforementioned learning scenarios, can merely be obtained in terms of the surrogate loss of the classifier at hand.  Overall, these ideas are in line with those presented in \cite{Loog2014b}.
+
+
+We could definitely imagine that, still, one takes the position that the mere loss that matters is the 0/1 loss and that it is this quantity that has to be minimized.  As far as we can see, however, taking this stance to the extreme, one cannot do anything else than try and directly minimize this 0/1 loss and face all the computational complications that go with it.  On a less philosophical level, one may claim that the 0/1 loss is, in the end, also not the loss that one is interested in.  One might actually have an application-relevant loss and in real applications (clinical, domestic, industrial, pedagogic, etc.) this is but seldom the 0/1 loss.  In fact, the true loss of interest related to a particular classification problem may ultimately be unknown.
+
+For us there is, however, a more basic reason for studying the surrogate loss intrinsic to the classifier at hand. As a matter of a fact, a lower loss really means the model is better, in the sense that the estimated parameters get closer to those of the optimal classifier one would obtain if all data is labeled.  In the particular setting of semi-supervised learning, a decrease in expected loss, when adding unlabeled data, really indicates that the same effect---i.e., an improved model fit---is achieved as with adding more labeled data.  In our opinion, this seems the least we could ask for in a semi-supervised setting.  With this we still do not mean to claim that the surrogate loss is \emph{the} quantity to study, but it does give us a different perspective on the problem in various learning scenarios.  Finally, let us point out that the connection between the 0/1 loss and surrogate losses has in recent years attracted quite some attention.  Some papers investigating theoretical aspects for particular classes of loss functions, but also covering the design of such surrogate losses, are \cite{Ben-David2012,masnadi2008design,Nguyen2009,Reid2009,reid2010composite,scott2011surrogate}. These contributions follow earlier works such as \cite{Bartlett2006}, and \cite{Zhang2004}.
+
+
+
+
+\subsection{Outline}
+
+This chapter illustrates our point by means of two classifiers that optimize the log-likelihood of the model fit to the data. Clearly, this objective should be maximized, but taking minus the likelihood would turn it into a loss (which is sometimes referred to as the log loss).  The particular classifiers under consideration are the nearest means classifier (NMC) \cite{duda72a} and classical linear discriminant analysis (LDA) \cite{rao1948utilization}.    Next section starts off with a general reflection on these two classifiers after which two semi-supervised variations are introduced.  Section \ref{sect:exp} reports on the results of the experiments, comparing the semi-supervised learners and their supervised counterparts empirically.  The final section discusses our findings in the light of the point we would like to make and concludes this chapter.
+
+
+
+
+
+
+\section{A Biased Introduction to Semi-Supervision}
+
+<<one,echo=FALSE,warning=TRUE, fig.cap="Mean error rates for the supervised (black), self-learned (yellow), and the constrained NMC (blue) on the eight real-world datasets for various unlabeled sample sizes and a total of four labeled training samples.", fig.height=8.9>>=
+library(ggplot2)
+library(dplyr)
+library(reshape2)
+library(scales)
+
+ds_names <- c("Haberman","Ionosphere","Pima","Sonar","SPECT","SPECTF","Transfusion","WDBC")
+
+mat_04 <- R.matlab::readMat("data/TNNLS2013LAB04all.mat")
+res <- mat_04$RES %>% 
+  .[,2:4,,c(4,5,7,8,9,10,11,12)]
+dimnames(res) <- list("Number of Unlabeled objects"=c(2, 8, 32, 128, 512, 2048),
+                      "Classifier"=c('Supervised','Constrained','Self-learned'),
+                      "repeat"=NULL,
+                      "Dataset"=ds_names)
+
+reshape2:::melt.array(res) %>% as.tbl %>%
+  group_by(`Number of Unlabeled objects`,Classifier,Dataset) %>% 
+  summarize(Mean=mean(value),SE=RSSL::stderror(value)) %>% 
+  ungroup %>% 
+  ggplot(aes(x=`Number of Unlabeled objects`,y=Mean,color=Classifier)) +
+  geom_line() +
+  geom_ribbon(aes(ymax=Mean+SE,ymin=Mean-SE,fill=Classifier),color=NA,alpha=0.3) +
+  facet_wrap(~Dataset,ncol=2,scales="free") +
+  scale_x_continuous(trans="log2",breaks=c(2, 8, 32, 128, 512, 2048)) +
+  ylab(toupper("Error rate")) +
+  theme(legend.position="bottom") +
+  scale_fill_manual(name="",values = c("Supervised"="black","Constrained"="#005b99","Self-learned"="#FFC200")) +
+  scale_color_manual(name="", values = c("Supervised"="black","Constrained"="#005b99","Self-learned"="#FFC200")) +
+  theme_thesis() +
+  xlab(toupper("Number of Unlabeled Objects"))
+@
+
+Before we get to semi-supervised NMC and LDA, we feel the need to remark that their regular supervised versions are still capable of providing state-of-the-art performance. Especially for relatively high-dimensional, small sample problems NMC may be a particularly good choice.  Some rather recent examples demonstrating this can be found in bioinformatics and its applications \cite{wilkerson2012differential,villamil2012colon,budczies2012remodeling}, but also in neurology \cite{jolij2011act} and pathology \cite{gazinska2013comparison}. Further use of the NMC can be found in high-impact journals from the fields of oncology, neuroscience, general medicine, pharmacology, and the like.  A handful of the latest examples can be found in \cite{hyde2012mnemonic,haibe2012three,desmet2013identification,sjodahl2012molecular}.  Similar remarks can be made about LDA, though in comparison with the NMC, there should be relatively more data available to make it work at a competitive level.  Like for the NMC, many recent contributions from a large number of disciplines still employ this classical decision rule, e.g.\ \cite{ackermann2013detection,allen2013network,chung2013single,brunton2013rats,price2012cyanophora}.  All in all, like any other classifier, NMC and LDA have their validity and cannot be put aside as being outdated or not-state-of-the-art. The fact that classifiers having been around for 40 years or more, does not mean they are superseded.  In this respect, the reader might also want to consult relevant works such as \cite{Hand2006a} and \cite{efronXXX}.
+
+<<oneprime,echo=FALSE,warning=FALSE, fig.cap="Mean error rates for the supervised (black), self-learned (yellow), and the constrained NMC (blue) on the eight real-world datasets for various unlabeled sample sizes and a total of ten labeled training samples.", fig.height=8.9>>=
+mat_10 <- R.matlab::readMat("data/TNNLS2013LAB10all.mat")
+res <- mat_10$RES %>% 
+  .[,2:4,,c(4,5,7,8,9,10,11,12)]
+dimnames(res) <- list("Number of Unlabeled objects"=c(2, 8, 32, 128, 512, 2048),
+                      "Classifier"=c('Supervised','Constrained','Self-learned'),
+                      "repeat"=NULL,
+                      "Dataset"=ds_names)
+
+reshape2:::melt.array(res) %>% as.tbl %>%
+  group_by(`Number of Unlabeled objects`,Classifier,Dataset) %>% 
+  summarize(Mean=mean(value),SE=RSSL::stderror(value)) %>% 
+  ungroup %>% 
+  ggplot(aes(x=`Number of Unlabeled objects`,y=Mean,color=Classifier)) +
+  geom_line() +
+  geom_ribbon(aes(ymax=Mean+SE,ymin=Mean-SE,fill=Classifier),color=NA,alpha=0.3) +
+  facet_wrap(~Dataset,ncol=2,scales="free") +
+  scale_x_continuous(trans="log2",breaks=c(2, 8, 32, 128, 512, 2048)) +
+  ylab(toupper("ERROR RATE")) +
+  theme(legend.position="bottom") +
+  scale_fill_manual(name="",values = c("Supervised"="black","Constrained"="#005b99","Self-learned"="#FFC200")) +
+  scale_color_manual(name="", values = c("Supervised"="black","Constrained"="#005b99","Self-learned"="#FFC200")) +
+  theme_thesis() +
+  xlab(toupper("Number of Unlabeled Objects"))
+@
+
+\subsection{Supervised NMC and LDA}
+
+The two semi-supervised versions of both the NMC and LDA are those based on classical expectation maximization or self-learning and those based on a so-called intrinsically constrained formulation.  These approaches are introduced in the subsections that follow.  The models underlying supervised NMC and LDA are based on normality assumptions for the class-conditional probability density functions.  More specifically:
+\begin{itemize}
+
+\item
+
+LDA is the classical technique where the class-conditional covariance matrices are assumed the same across all classes, but where both the class means and the class priors can vary from class to class.  Estimating these variables under maximum likelihood results in the well-known solutions for the priors and the means, while the overall class covariance matrix becomes the prior weighted sum of the ML estimates of the individual class covariance matrices.
+
+\item
+
+For the NMC the parameter space is further restricted.  In addition to the covariance matrix being the same for all classes it is also constrained to be the a multiple of the identity matrix.  Moreover, the priors are fixed to be equal for all classes.  In \cite{Loog2014b} one can find the solution to this parameter estimation problem.  Here we note that this model is not necessarily unique: there are of course various ways in which one can formulate the NMC (as well as other classifiers) in terms of an optimization problem.  Ours is but one choice.
+
+\end{itemize}
+
+
+\subsection{EM and Self-Learning}
+
+
+
+Self-learning or self-training is a rather generally applicable semi-supervised learning approach \cite{basu02a,McLachlan1975,vittaut02}.  In an initial step, the classifier of choice is trained on the available labeled data.  Using this trained classifier all unlabeled data is assigned a label.  Then, in a next step all of this now labeled data is added to the training set and the classifier is retrained with this enlarged set.  Given this newly trained classifier one can relabel the initially unlabeled data and retrain the classifier again with these updated labels.  This process is then iterated until convergence, i.e., when the labeling of the initially unlabeled data remains unchanged.  The foregoing only gives the basic recipe for self-learning.  Many variations and alternatives are possible.  One can, for instance, only take a fraction of the unlabeled data into account when retraining, once labeled one can decide to not relabel the data, etc.
+
+Another well-known, and arguably more principled semi-supervised approach treats the absence of certain labels as a missing data problem. Most of the time this is formulated in terms of a maximum likelihood objective \cite{Dempster1977} and relies on the classical technique of expectation maximization (EM) to come to a solution \cite{nigam98a,ONeill1978}. Although self-learning and EM may at a first glance seem different ways of tackling the semi-supervised classification problem, \cite{basu02a} effectively shows that self-learners optimize the same objective as EM does (though they may typically end up in different local optima). Similar observations have been made in \cite{Abney2004,Haffari2007}.
+
+A major problem with EM and self-learning strategies is the fact that they often suffer from severely deteriorated performance with increasing numbers of unlabeled samples. This behaviour, which has been extensively studied in various previous works \cite{cohen04a,Cozman2006,Loog2014a,yang2011effect}, is typically caused by model misspecification, i.e., the setting in which the statistical model does not fit the actual data distribution.  We note that this is at contrast with the supervised setting, where most classifiers are capable of handling mismatched data assumptions rather well and adding more labeled data typically improves performance.  NMC will most definitely suffer from model misspecification, because of the rather rigid, low-complexity nature of this classifier.  LDA is more flexible, but still only able to model linear decision boundaries.  Hence, also LDA will often be misspecified.
+
+
+\subsection{Intrinsically Constrained NMC}
+<<two,echo=FALSE,warning=FALSE,fig.cap="Mean log-likelihood for the supervised (black), self-learned (yellow), and the constrained NMC (blue) on the eight real-world datasets for various unlabeled sample sizes and a total of four labeled training samples.  Compare these to the respective error rates in Figure \\ref{fig:one}.", fig.height=8.9>>=
+res <- mat_04$LLK %>% 
+  .[,2:4,,c(4,5,7,8,9,10,11,12)]
+dimnames(res) <- list("Number of Unlabeled objects"=c(2, 8, 32, 128, 512, 2048),
+                      "Classifier"=c('Supervised','Constrained','Self-learned'),
+                      "repeat"=NULL,
+                      "Dataset"=ds_names)
+
+reshape2:::melt.array(res) %>% as.tbl %>%
+  group_by(`Number of Unlabeled objects`,Classifier,Dataset) %>% 
+  summarize(Mean=mean(value),SE=RSSL::stderror(value)) %>% 
+  ungroup %>% 
+  ggplot(aes(x=`Number of Unlabeled objects`,y=Mean,color=Classifier)) +
+  geom_line() +
+  geom_ribbon(aes(ymax=Mean+SE,ymin=Mean-SE,fill=Classifier),color=NA,alpha=0.3) +
+  facet_wrap(~Dataset,ncol=2,scales="free") +
+  scale_x_continuous(trans="log2",breaks=c(2, 8, 32, 128, 512, 2048)) +
+  ylab(toupper("AVERAGE LOG-LIKELIHOOD")) +
+  theme(legend.position="bottom") +
+  scale_fill_manual(name="",values = c("Supervised"="black","Constrained"="#005b99","Self-learned"="#FFC200")) +
+  scale_color_manual(name="", values = c("Supervised"="black","Constrained"="#005b99","Self-learned"="#FFC200")) +
+  theme_thesis() +
+  xlab(toupper("Number of Unlabeled Objects"))
+@
+In \cite{Loog2010} and \cite{Loog2012a}, a novel way to learn in a semi-supervised manner was introduced.  On a conceptual level, the idea is to exploit constraints that are known to hold for the NMC and LDA and that define relationships between the class-specific parameters of those classifiers and certain statistics that are independent of the particular labeling.  These relationships are automatically fulfilled in the supervised setting but typically impose constraints in the semi-supervised setting.  Specifically, for NMC and LDA the following constraint holds (see \citet{fukunaga90}):
+\begin{equation}\label{eq:altlaw}
+N m = \sum_{k=1}^K N_k m_k \, ,
+\end{equation}
+where $K$ is the number of classes, $m$ is the overall sample mean of the data, and $m_k$ are the different sample means of the $K$ classes.  $N$ is the total number of training instances and $N_k$ is the number of observations for class $k$.  For LDA there is an additional constraint that holds (again see \citet{fukunaga90}):
+\begin{equation}\label{eq:cov}
+ B + W = T \, .
+\end{equation}
+It relates the standard estimates for the average class-conditional covariance matrix $W$, the between-class covariance matrix $B$, and the estimate of the total covariance matrix $T$.  $W$ is the covariance matrix that models the spread of every class in LDA.
+
+In the supervised setting these constraints do not need to be assumed as they are automatically fulfilled.  Their benefit only becomes apparent with the arrival of unlabeled data. In the semi-supervised setting, the label-independent estimates $m$ and $T$ can be improved.  Using these more accurate estimates, however, results in a violation of the constraints. Fixing the constraints again by properly adjusting $m_i$, $W$, and $B$, these label-dependent estimates become more accurate and in expectation lead to improved classifiers.  For a more detailed account of how to enforce these constraints, we refer to \citet{Loog2014a} (see \citet{Krijthe2014} and \citet{Loog2012b} for related approaches).
+
+The constrained estimation approach is less generally applicable, but it can avoid the severe deteriorations self-learning displays: when the model does not match the data, the model fit will obviously not be good, but the constrained semi-supervised fit will generally still be better, in terms of the error rate, than the supervised equivalent.  Still, also in this constrained setting, the results turn out not to be univocal either.  Error rates can increase with increasing number of unlabeled samples and we consider further insight into this issue paramount for a deeper understanding of the semi-supervised learning problem in general.
+
+
+
+
+\section{Experimental Setup and Results}\label{sect:exp}
+
+<<twoprime,echo=FALSE,warning=FALSE,fig.cap="Mean log-likelihood for the supervised (black), self-learned (yellow), and the constrained NMC (blue) on the eight real-world datasets for various unlabeled sample sizes and a total of ten labeled training samples.   Compare these to the respective error rates in Figure \\ref{fig:oneprime}.", fig.height=8.9>>=
+res <- mat_10$LLK %>% 
+  .[,2:4,,c(4,5,7,8,9,10,11,12)]
+dimnames(res) <- list("Number of Unlabeled objects"=c(2, 8, 32, 128, 512, 2048),
+                      "Classifier"=c('Supervised','Constrained','Self-learned'),
+                      "repeat"=NULL,
+                      "Dataset"=ds_names)
+
+reshape2:::melt.array(res) %>% as.tbl %>%
+  group_by(`Number of Unlabeled objects`,Classifier,Dataset) %>% 
+  summarize(Mean=mean(value),SE=RSSL::stderror(value)) %>% 
+  ungroup %>% 
+  ggplot(aes(x=`Number of Unlabeled objects`,y=Mean,color=Classifier)) +
+  geom_line() +
+  geom_ribbon(aes(ymax=Mean+SE,ymin=Mean-SE,fill=Classifier),color=NA,alpha=0.3) +
+  facet_wrap(~Dataset,ncol=2,scales="free") +
+  scale_x_continuous(trans="log2",breaks=c(2, 8, 32, 128, 512, 2048)) +
+  ylab(toupper("AVERAGE LOG-LIKELIHOOD")) +
+  theme(legend.position="bottom") +
+  scale_fill_manual(name="",values = c("Supervised"="black","Constrained"="#005b99","Self-learned"="#FFC200")) +
+  scale_color_manual(name="", values = c("Supervised"="black","Constrained"="#005b99","Self-learned"="#FFC200")) +
+  theme_thesis() +
+  xlab(toupper("Number of Unlabeled Objects"))
+@
+
+For the experiments, we used eight datasets from the UCI Machine Learning Repository \cite{Lichman2013}, all having two classes. The datasets used, together with some basic specifications, can be found in Table \ref{tab:real}.  We carried out the experiments in a way similar to those performed in \cite{Loog2014a}.
+
+
+
+
+\begin{table}[ht]
+\begin{center}
+\caption{Basic properties of the eight two-class datasets from the UCI Machine Learning Repository \cite{Lichman2013}.}\label{tab:real}
+\begin{tabular}{lccc}
+\toprule
+Data & Objects & Dimensions & Smallest Prior\\ 
+\midrule
+{ \scshape haberman } & 306 & 3 & 0.26 \\
+{ \scshape ionosphere } & 351 & 33 & 0.36 \\
+{ \scshape pima } & 768 & 8 & 0.35 \\
+{ \scshape sonar } & 208 & 60 & 0.47 \\
+{ \scshape spect } & 267 & 22 & 0.21 \\
+{ \scshape spectf } & 267 & 44 & 0.21 \\
+{ \scshape transfusion } & 748 & 3 & 0.24 \\
+{ \scshape wdbc } & 569 & 30 & 0.37 \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{table}
+
+Experiments with the three NMCs were done for two different total labeled training set sizes, four and ten, while the unlabeled training set sizes considered are $2^1=2$, $2^3$, \dots, $2^{9}$, and $2^{11} = 2048$.  For the supervised and semi-supervised LDAs, experiments were carried out with $100$ labeled samples and unlabeled training set sizes of $2^0=1$, $2^1$, \dots, $2^{12}$, and $2^{13} = 8196$. In the experiments, we study learning curves for increasing numbers of unlabeled data.  For every combination of the amount of unlabeled objects and labeled objects, 1000 repetitions of randomly drawn data were used to obtain accurate performance estimates.  In order to be able to do so based on the limited amount of samples provided by the datasets, instances were drawn with replacement.  This basically means that we assume that the empirical distribution of every dataset is its true distribution and this therefore allows us to measure the true error rates and the true log-likelihoods. It enabled us to properly study our learning curves on real-world data without having to deal with the extra variation due to cross validation and the like.
+
+
+<<five,echo=FALSE,warning=FALSE,fig.cap="Mean error rates for supervised (black), self-learned (yellow), and constrained LDA (blue) on the eight real-world datasets for various unlabeled sample sizes and a total of 100 labeled training samples.", fig.height=8.9>>=
+res <- R.matlab::readMat("data/RES_jesse.mat") %>% 
+  .$`RES.jesse` %>% 
+  .[,,-2,-3,-3]
+dimnames(res) <- list("repeat"=NULL,
+                      "Number of Unlabeled objects"=2^(0:13),
+                      "Classifier"=c('Supervised','Constrained','Self-learned'),
+                      "Measure"=NULL,
+                      "Dataset"=ds_names)
+
+reshape2:::melt.array(res) %>% as.tbl %>%
+  filter(Measure==1) %>% 
+  mutate(Measure=NULL) %>% 
+  group_by(`Number of Unlabeled objects`,Classifier,Dataset) %>% 
+  summarize(Mean=mean(value),SE=RSSL::stderror(value)) %>% 
+  ungroup %>% 
+  ggplot(aes(x=`Number of Unlabeled objects`,y=Mean,color=Classifier)) +
+  geom_line() +
+  geom_ribbon(aes(ymax=Mean+SE,ymin=Mean-SE,fill=Classifier),color=NA,alpha=0.3) +
+  facet_wrap(~Dataset,ncol=2,scales="free") +
+  scale_x_continuous(trans="log2",breaks=c(2, 8, 32, 128, 512, 2048,8192)) +
+  ylab(toupper("Error rate")) +
+  theme(legend.position="bottom") +
+  scale_fill_manual(name="",values = c("Supervised"="black","Constrained"="#005b99","Self-learned"="#FFC200")) +
+  scale_color_manual(name="", values = c("Supervised"="black","Constrained"="#005b99","Self-learned"="#FFC200")) +
+  theme_thesis() +
+  xlab(toupper("Number of Unlabeled Objects"))
+@
+
+<<fiveprime,echo=FALSE,warning=FALSE,fig.cap="The curves for the log-likelihood of the three LDAs corresponding to the error curves in Figure \\ref{fig:five}. ", fig.height=8.9>>=
+reshape2:::melt.array(res) %>% as.tbl %>%
+  filter(Measure==2) %>% 
+  mutate(Measure=NULL) %>% 
+  group_by(`Number of Unlabeled objects`,Classifier,Dataset) %>% 
+  summarize(Mean=-mean(value),SE=RSSL::stderror(value)) %>% 
+  ungroup %>% 
+  ggplot(aes(x=`Number of Unlabeled objects`,y=Mean,color=Classifier)) +
+  geom_line() +
+  geom_ribbon(aes(ymax=Mean+SE,ymin=Mean-SE,fill=Classifier),color=NA,alpha=0.3) +
+  facet_wrap(~Dataset,ncol=2,scales="free") +
+  scale_x_continuous(trans="log2",breaks=c(2, 8, 32, 128, 512, 2048,8192)) +
+  ylab(toupper("Average Log-Likelihood")) +
+  theme(legend.position="bottom") +
+  scale_fill_manual(name="",values = c("Supervised"="black","Constrained"="#005b99","Self-learned"="#FFC200")) +
+  scale_color_manual(name="", values = c("Supervised"="black","Constrained"="#005b99","Self-learned"="#FFC200")) +
+  theme_thesis() +
+  xlab(toupper("Number of Unlabeled Objects"))
+@
+
+
+
+Following the introductory section, we constructed learning curves both for the expected error rate and the expected log-likelihood (based on the 1000 repetitions).  Figure \ref{fig:one} shows the error rates for the NMCs on the various datasets when only four training samples are available.  Figure \ref{fig:oneprime} shows the error when ten samples are at hand.  The corresponding average log-likelihood curves can be found in Figures \ref{fig:two} and \ref{fig:twoprime}, respectively.  Figure \ref{fig:five} reports the error rates obtained with 100 training samples and using the supervised and semi-supervised LDAs.  Figure \ref{fig:fiveprime} reports on the corresponding log-likelihoods.   The supervised classification performance is displayed in black, self-learners are in yellow (NCS 0580-Y10R), and the constrained versions are in blue (NCS 4055-R95B). The lighter bands around the learning curves give an indication of the standard deviations of the averaged curves, providing an idea of the statistical significance of the differences between the curves.
+
+
+\section{Discussion and Conclusion}\label{sect:fin}
+
+To start with, it is important to note that when we look at the error rates, behaviours can indeed be quite disperse.  For both classifiers and both constrained and self-learned semi-supervised approaches, there are examples of error rates higher as well as lower than the averaged error rate the regular supervised learners achieve.  Sometimes rather erratic behaviour can be noted, like for self-learned NMC on {\scshape wdbc} in Figure \ref{fig:one} (yellow curve) and constrained LDA on {\scshape haberman} and {\scshape transfusion} in Figure \ref{fig:five} (blue curves).  On these last two, also the behaviour of self-learned LDA does not seem very regular.  Overall, the performance of the self-learners is very disappointing as only on {\scshape wdbc} with 4 labeled training samples, some overall but not very convincing improvements can be observed.  Regarding expected error rates, the constrained approach fares significantly better, showing clear performance improvement in at least 6 of the 16 NMC experiments and in 5 out of 8 of the LDA experiments.  Still, in at least 3 of the 16, classification errors become significantly worse for NMC and, in 5 out of 8 experiments, constrained LDA is not convincing.
+
+Things drastically change indeed when we look at the log-likelihood curves.  For the constrained approaches, looking at Figure \ref{fig:two} and the lower half of Figure \ref{fig:fiveprime}, the story is very simple: where for the error rate deteriorations, improvements, and erraticism could be observed, the log-likelihood improves---i.e., increases---in every single case in a smooth, monotonic, and significant way.  Only for LDA on {\scshape haberman} and maybe {\scshape transfusion}, the constrained approach does not improve as convincingly as in all 22 other cases.
+
+For self-learned NMC and LDA, the results are still mixed.  In many a case, we now do see improvements, but there are still some datasets on which the likelihood decreases.  Notably, for self-learned NMC with 4 labeled samples, the log-likelihood on the test data improves in all cases.  But we do not see the monotonic behaviour that the constrained approach displays.  Still, curves are less erratic than those for the error rates.  Nonetheless, it seems that even if we quantify performance in terms of log-likelihoods, we should be very critical towards self-learning and EM-based approaches. Behaviour definitely is much more regular in terms of its surrogate loss, but performances worse than the supervised approach provides still do occur.
+
+Nevertheless, the results illustrate that it can be interesting to study not only the performance in terms of error rates but also in terms of the surrogate loss.  This is irrespective of the possibility that, ultimately, one might only be interested in the former.  It is encouraging to observe empirically that there seem to be semi-supervised learning schemes that can guarantee improvements in terms of the intrinsic surrogate loss.  This really is a nontrivial observation, as similar guarantees for error rates seem out of the question, unless strict conditions on the data are imposed; cf.\ \cite{Castelli1995,Ben-David2008,Lafferty2007,Singh2008}. Although our illustration is in terms of semi-supervised learning, it seems rather plausible that similar observations can be made for other learning settings in which two or more different estimation techniques for the same type of classifier, relying on the same surrogate loss, are compared.  All in all, it is worthwhile considering the behaviour of the surrogate in general, as it provides us with a view on a classifier's relative performance that a mere error rate cannot capture.
